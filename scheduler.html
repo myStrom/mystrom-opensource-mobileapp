@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>myStrom - Scheduler</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: Roboto, Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #45b40a;
+            padding-bottom: 10px;
+        }
+        .header-left h1 {
+            font-size: 2em;
+            color: #333;
+            margin: 0;
+        }
+        .header-left .clock {
+            font-size: 14px;
+            color: #777;
+            margin-top: 4px;
+        }
+        .header a {
+            color: #45b40a;
+            text-decoration: none;
+            font-size: 16px;
+        }
+        .header a:hover { text-decoration: underline; }
+        .btn {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            color: #fff;
+            background-color: #db394e;
+            transition: background-color 0.2s;
+        }
+        .btn:hover { background-color: #c62d40; }
+        .btn-success { background-color: #5cb85c; }
+        .btn-success:hover { background-color: #4e9e4e; }
+        .btn-action { background-color: #337ab7; }
+        .btn-action:hover { background-color: #286090; }
+        .btn-sm { padding: 5px 10px; font-size: 13px; }
+        .btn-danger { background-color: #d9534f; }
+        .btn-danger:hover { background-color: #c9302c; }
+        .scheduler-list {
+            margin-bottom: 20px;
+        }
+        .scheduler-item {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+        }
+        .scheduler-item .field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .scheduler-item label {
+            font-size: 12px;
+            color: #777;
+        }
+        .scheduler-item input[type="number"],
+        .scheduler-item input[type="text"],
+        .scheduler-item select {
+            padding: 6px 8px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+        .scheduler-item .time-input { width: 60px; }
+        .scheduler-item .action-select { width: 90px; }
+        .scheduler-item .color-input { width: 120px; }
+        .scheduler-item .ramp-input { width: 80px; }
+        .scheduler-item .value-input { width: 70px; }
+        .days-checkboxes {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        .days-checkboxes label {
+            font-size: 11px;
+            color: #555;
+            cursor: pointer;
+            padding: 2px 6px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            background: #f5f5f5;
+        }
+        .days-checkboxes input { display: none; }
+        .days-checkboxes input:checked + label {
+            background: #45b40a;
+            color: #fff;
+            border-color: #45b40a;
+        }
+        .enable-toggle { display: flex; align-items: center; gap: 5px; }
+        .enable-toggle label { font-size: 12px; color: #777; }
+        .item-actions { margin-left: auto; display: flex; gap: 5px; }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #777;
+            font-size: 18px;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+            font-size: 12px;
+            color: #777;
+            display: flex;
+            justify-content: space-between;
+        }
+        .error-msg {
+            color: #a94442;
+            background: #f2dede;
+            border: 1px solid #ebccd1;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+            display: none;
+        }
+        .success-msg {
+            color: #3c763d;
+            background: #dff0d8;
+            border: 1px solid #d6e9c6;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+            display: none;
+        }
+        .add-form {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .add-form h3 {
+            margin-top: 0;
+            color: #333;
+            font-size: 1.2em;
+        }
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: flex-end;
+        }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="header-left">
+            <h1>Scheduler</h1>
+            <div class="clock" id="clock">--:--:--</div>
+        </div>
+        <a href="/">&larr; Back</a>
+    </div>
+
+    <div id="error-msg" class="error-msg"></div>
+    <div id="success-msg" class="success-msg"></div>
+
+    <div id="loading" class="loading">Loading...</div>
+
+    <div id="content" class="hidden">
+        <div class="add-form">
+            <h3>Add new schedule</h3>
+            <div class="form-row">
+                <div class="field-group">
+                    <label>Hour</label>
+                    <input type="number" id="new-hour" class="time-input" min="0" max="23" value="8">
+                </div>
+                <div class="field-group">
+                    <label>Minute</label>
+                    <input type="number" id="new-minute" class="time-input" min="0" max="59" value="0">
+                </div>
+                <div class="field-group">
+                    <label>Action</label>
+                    <select id="new-action" class="action-select">
+                        <option value="on">on</option>
+                        <option value="off">off</option>
+                        <option value="toggle">toggle</option>
+                    </select>
+                </div>
+                <div class="field-group hidden" id="new-color-group">
+                    <label>Color (HSV h;s;v)</label>
+                    <input type="text" id="new-color" class="color-input" placeholder="360;100;100">
+                </div>
+                <div class="field-group hidden" id="new-ramp-group">
+                    <label>Ramp</label>
+                    <input type="number" id="new-ramp" class="ramp-input" min="1" max="40950" placeholder="0">
+                </div>
+                <div class="field-group hidden" id="new-value-group">
+                    <label>Value (%)</label>
+                    <input type="number" id="new-value" class="value-input" min="0" max="100" placeholder="0">
+                </div>
+                <div class="field-group">
+                    <label>Days</label>
+                    <div class="days-checkboxes" id="new-days"></div>
+                </div>
+                <div class="field-group">
+                    <label>&nbsp;</label>
+                    <button class="btn btn-success" onclick="addItem()">Add</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="scheduler-list" id="scheduler-list"></div>
+
+        <button class="btn btn-action" onclick="saveAll()">Save All</button>
+    </div>
+
+    <div class="footer">
+        <span id="fw-version"></span>
+        <span>Copyright &copy; 2020 - myStrom AG</span>
+    </div>
+</div>
+
+<script>
+(function() {
+    'use strict';
+
+    var DAY_NAMES = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+    var DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    var variant = null; /* 'WRS' | 'WLL' | other */
+    var hasColor = false;
+    var hasRamp = false;
+    var hasValue = false;
+    var scheduleData = [];
+
+    /* Browser timezone offset in minutes (UTC - local), e.g. +120 for UTC+2 */
+    var tzOffsetMin = -new Date().getTimezoneOffset();
+
+    function showError(msg) {
+        var el = document.getElementById('error-msg');
+        el.textContent = msg;
+        el.style.display = 'block';
+        setTimeout(function() { el.style.display = 'none'; }, 5000);
+    }
+
+    function showSuccess(msg) {
+        var el = document.getElementById('success-msg');
+        el.textContent = msg;
+        el.style.display = 'block';
+        setTimeout(function() { el.style.display = 'none'; }, 3000);
+    }
+
+    function fetchJson(url, options) {
+        return fetch(url, options).then(function(resp) {
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            return resp.json();
+        });
+    }
+
+    /* Determine variant capabilities from api/v1/info */
+    var clockDate = null;
+    var clockTimer = null;
+
+    function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+    function formatClock(d) {
+        var days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        return days[d.getDay()] + ' ' +
+               pad2(d.getHours()) + ':' +
+               pad2(d.getMinutes()) + ':' +
+               pad2(d.getSeconds());
+    }
+
+    function startClock() {
+        if (clockTimer) clearInterval(clockTimer);
+        updateClock();
+        clockTimer = setInterval(updateClock, 1000);
+    }
+
+    function updateClock() {
+        if (!clockDate) return;
+        clockDate = new Date(clockDate.getTime() + 1000);
+        var el = document.getElementById('clock');
+        if (el) el.textContent = formatClock(clockDate);
+    }
+
+    function loadInfo() {
+        return fetchJson('api/v1/info').then(function(info) {
+            variant = info.type || null;
+            /* WRS (strip) supports color + ramp; WLL (cube) supports value + ramp */
+            if (variant === 'WRS' || variant === 'strip') {
+                hasColor = true;
+                hasRamp = true;
+            } else if (variant === 'WLL' || variant === 'wll') {
+                hasRamp = true;
+                hasValue = true;
+            }
+            /* Set footer version */
+            var fwEl = document.getElementById('fw-version');
+            if (info.version) {
+                fwEl.textContent = 'Firmware: ' + info.version;
+            }
+            /* Parse device UTC time and start local clock */
+            if (info.date_time_utc) {
+                var parsed = new Date(info.date_time_utc);
+                if (!isNaN(parsed.getTime())) {
+                    clockDate = parsed;
+                    startClock();
+                }
+            }
+        }).catch(function(err) {
+            /* If info fails, default to showing basic fields (on/off/toggle) */
+            console.warn('Could not load info: ' + err.message);
+        });
+    }
+
+    function loadScheduler() {
+        return fetchJson('api/v1/scheduler').then(function(data) {
+            var utcData = Array.isArray(data) ? data : [];
+            /* Convert UTC schedule times to local for display */
+            scheduleData = utcData.map(utcItemToLocal);
+        });
+    }
+
+    /* Convert a schedule item from UTC to local time */
+    function utcItemToLocal(item) {
+        var local = {};
+        for (var k in item) { if (item.hasOwnProperty(k)) local[k] = item[k]; }
+        var utcMin = (item.hour || 0) * 60 + (item.minute || 0);
+        var shifted = utcMin + tzOffsetMin;
+        var wrapped = ((shifted % (7 * 1440)) + (7 * 1440)) % (7 * 1440);
+        var dayShift = Math.floor(shifted / 1440);
+        local.hour = Math.floor((wrapped % 1440) / 60);
+        local.minute = wrapped % 60;
+        if (Array.isArray(item.days)) {
+            local.days = item.days.map(function(d) {
+                var idx = DAY_NAMES.indexOf(d);
+                if (idx < 0) return d;
+                return DAY_NAMES[((idx + dayShift) % 7 + 7) % 7];
+            });
+        }
+        return local;
+    }
+
+    /* Convert a schedule item from local time back to UTC */
+    function localItemToUtc(item) {
+        var utc = {};
+        for (var k in item) { if (item.hasOwnProperty(k)) utc[k] = item[k]; }
+        var localMin = (item.hour || 0) * 60 + (item.minute || 0);
+        var shifted = localMin - tzOffsetMin;
+        var wrapped = ((shifted % (7 * 1440)) + (7 * 1440)) % (7 * 1440);
+        var dayShift = Math.floor(shifted / 1440);
+        utc.hour = Math.floor((wrapped % 1440) / 60);
+        utc.minute = wrapped % 60;
+        if (Array.isArray(item.days)) {
+            utc.days = item.days.map(function(d) {
+                var idx = DAY_NAMES.indexOf(d);
+                if (idx < 0) return d;
+                return DAY_NAMES[((idx + dayShift) % 7 + 7) % 7];
+            });
+        }
+        return utc;
+    }
+
+    function makeDaysCheckboxes(selectedDays, prefix) {
+        var container = document.createElement('div');
+        container.className = 'days-checkboxes';
+        for (var i = 0; i < 7; i++) {
+            var cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.id = prefix + '-day-' + i;
+            cb.value = DAY_NAMES[i];
+            if (selectedDays && selectedDays.indexOf(DAY_NAMES[i]) !== -1) {
+                cb.checked = true;
+            }
+            var lbl = document.createElement('label');
+            lbl.setAttribute('for', cb.id);
+            lbl.textContent = DAY_LABELS[i];
+            cb.addEventListener('change', function() {
+                /* visual update handled by CSS :checked */
+            });
+            container.appendChild(cb);
+            container.appendChild(lbl);
+        }
+        return container;
+    }
+
+    function getDaysFromContainer(container) {
+        var days = [];
+        var cbs = container.querySelectorAll('input[type="checkbox"]');
+        cbs.forEach(function(cb) {
+            if (cb.checked) days.push(cb.value);
+        });
+        return days;
+    }
+
+    function renderItems() {
+        var listEl = document.getElementById('scheduler-list');
+        listEl.innerHTML = '';
+
+        scheduleData.forEach(function(item, index) {
+            var div = document.createElement('div');
+            div.className = 'scheduler-item';
+
+            /* Enable toggle */
+            var enableDiv = document.createElement('div');
+            enableDiv.className = 'enable-toggle';
+            var enableCb = document.createElement('input');
+            enableCb.type = 'checkbox';
+            enableCb.checked = item.enable !== false;
+            enableCb.id = 'item-' + index + '-enable';
+            enableCb.addEventListener('change', function() {
+                scheduleData[index].enable = enableCb.checked;
+            });
+            var enableLbl = document.createElement('label');
+            enableLbl.setAttribute('for', enableCb.id);
+            enableLbl.textContent = 'Enable';
+            enableDiv.appendChild(enableCb);
+            enableDiv.appendChild(enableLbl);
+            div.appendChild(enableDiv);
+
+            /* Hour */
+            var hourGroup = document.createElement('div');
+            hourGroup.className = 'field-group';
+            var hourLbl = document.createElement('label');
+            hourLbl.textContent = 'Hour';
+            var hourInput = document.createElement('input');
+            hourInput.type = 'number';
+            hourInput.className = 'time-input';
+            hourInput.min = 0; hourInput.max = 23;
+            hourInput.value = item.hour || 0;
+            hourInput.addEventListener('change', function() {
+                scheduleData[index].hour = parseInt(hourInput.value) || 0;
+            });
+            hourGroup.appendChild(hourLbl);
+            hourGroup.appendChild(hourInput);
+            div.appendChild(hourGroup);
+
+            /* Minute */
+            var minGroup = document.createElement('div');
+            minGroup.className = 'field-group';
+            var minLbl = document.createElement('label');
+            minLbl.textContent = 'Minute';
+            var minInput = document.createElement('input');
+            minInput.type = 'number';
+            minInput.className = 'time-input';
+            minInput.min = 0; minInput.max = 59;
+            minInput.value = item.minute || 0;
+            minInput.addEventListener('change', function() {
+                scheduleData[index].minute = parseInt(minInput.value) || 0;
+            });
+            minGroup.appendChild(minLbl);
+            minGroup.appendChild(minInput);
+            div.appendChild(minGroup);
+
+            /* Action */
+            var actGroup = document.createElement('div');
+            actGroup.className = 'field-group';
+            var actLbl = document.createElement('label');
+            actLbl.textContent = 'Action';
+            var actSel = document.createElement('select');
+            actSel.className = 'action-select';
+            ['on', 'off', 'toggle'].forEach(function(a) {
+                var opt = document.createElement('option');
+                opt.value = a; opt.textContent = a;
+                if (item.action === a) opt.selected = true;
+                actSel.appendChild(opt);
+            });
+            actSel.addEventListener('change', function() {
+                scheduleData[index].action = actSel.value;
+            });
+            actGroup.appendChild(actLbl);
+            actGroup.appendChild(actSel);
+            div.appendChild(actGroup);
+
+            /* Color (WRS only) */
+            if (hasColor) {
+                var colorGroup = document.createElement('div');
+                colorGroup.className = 'field-group';
+                var colorLbl = document.createElement('label');
+                colorLbl.textContent = 'Color (HSV)';
+                var colorInput = document.createElement('input');
+                colorInput.type = 'text';
+                colorInput.className = 'color-input';
+                colorInput.placeholder = '360;100;100';
+                colorInput.value = item.color || '';
+                colorInput.addEventListener('change', function() {
+                    if (colorInput.value) {
+                        scheduleData[index].color = colorInput.value;
+                    } else {
+                        delete scheduleData[index].color;
+                    }
+                });
+                colorGroup.appendChild(colorLbl);
+                colorGroup.appendChild(colorInput);
+                div.appendChild(colorGroup);
+            }
+
+            /* Ramp (WRS + WLL) */
+            if (hasRamp) {
+                var rampGroup = document.createElement('div');
+                rampGroup.className = 'field-group';
+                var rampLbl = document.createElement('label');
+                rampLbl.textContent = 'Ramp';
+                var rampInput = document.createElement('input');
+                rampInput.type = 'number';
+                rampInput.className = 'ramp-input';
+                rampInput.min = 1; rampInput.max = 40950;
+                rampInput.placeholder = '0';
+                rampInput.value = item.ramp || '';
+                rampInput.addEventListener('change', function() {
+                    if (rampInput.value) {
+                        scheduleData[index].ramp = parseInt(rampInput.value);
+                    } else {
+                        delete scheduleData[index].ramp;
+                    }
+                });
+                rampGroup.appendChild(rampLbl);
+                rampGroup.appendChild(rampInput);
+                div.appendChild(rampGroup);
+            }
+
+            /* Value (WLL only) */
+            if (hasValue) {
+                var valGroup = document.createElement('div');
+                valGroup.className = 'field-group';
+                var valLbl = document.createElement('label');
+                valLbl.textContent = 'Value (%)';
+                var valInput = document.createElement('input');
+                valInput.type = 'number';
+                valInput.className = 'value-input';
+                valInput.min = 0; valInput.max = 100;
+                valInput.placeholder = '0';
+                valInput.value = item.value !== undefined ? item.value : '';
+                valInput.addEventListener('change', function() {
+                    if (valInput.value !== '') {
+                        scheduleData[index].value = parseInt(valInput.value);
+                    } else {
+                        delete scheduleData[index].value;
+                    }
+                });
+                valGroup.appendChild(valLbl);
+                valGroup.appendChild(valInput);
+                div.appendChild(valGroup);
+            }
+
+            /* Days */
+            var daysGroup = document.createElement('div');
+            daysGroup.className = 'field-group';
+            var daysLbl = document.createElement('label');
+            daysLbl.textContent = 'Days';
+            var daysContainer = makeDaysCheckboxes(item.days, 'item-' + index);
+            daysContainer.id = 'item-' + index + '-days';
+            /* Attach change listeners to update scheduleData */
+            daysContainer.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+                cb.addEventListener('change', function() {
+                    scheduleData[index].days = getDaysFromContainer(daysContainer);
+                });
+            });
+            daysGroup.appendChild(daysLbl);
+            daysGroup.appendChild(daysContainer);
+            div.appendChild(daysGroup);
+
+            /* Delete button */
+            var actions = document.createElement('div');
+            actions.className = 'item-actions';
+            var delBtn = document.createElement('button');
+            delBtn.className = 'btn btn-danger btn-sm';
+            delBtn.textContent = 'Delete';
+            delBtn.addEventListener('click', function() {
+                scheduleData.splice(index, 1);
+                renderItems();
+            });
+            actions.appendChild(delBtn);
+            div.appendChild(actions);
+
+            listEl.appendChild(div);
+        });
+    }
+
+    function updateAddFormVisibility() {
+        document.getElementById('new-color-group').classList.toggle('hidden', !hasColor);
+        document.getElementById('new-ramp-group').classList.toggle('hidden', !hasRamp);
+        document.getElementById('new-value-group').classList.toggle('hidden', !hasValue);
+    }
+
+    function initNewDays() {
+        var container = document.getElementById('new-days');
+        container.innerHTML = '';
+        for (var i = 0; i < 7; i++) {
+            var cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.id = 'new-day-' + i;
+            cb.value = DAY_NAMES[i];
+            cb.checked = true; /* default all days */
+            var lbl = document.createElement('label');
+            lbl.setAttribute('for', cb.id);
+            lbl.textContent = DAY_LABELS[i];
+            container.appendChild(cb);
+            container.appendChild(lbl);
+        }
+    }
+
+    window.addItem = function() {
+        var hour = parseInt(document.getElementById('new-hour').value) || 0;
+        var minute = parseInt(document.getElementById('new-minute').value) || 0;
+        var action = document.getElementById('new-action').value;
+        var days = getDaysFromContainer(document.getElementById('new-days'));
+
+        var newItem = {
+            enable: true,
+            hour: hour,
+            minute: minute,
+            action: action,
+            days: days
+        };
+
+        if (hasColor) {
+            var color = document.getElementById('new-color').value;
+            if (color) newItem.color = color;
+        }
+        if (hasRamp) {
+            var ramp = document.getElementById('new-ramp').value;
+            if (ramp) newItem.ramp = parseInt(ramp);
+        }
+        if (hasValue) {
+            var value = document.getElementById('new-value').value;
+            if (value !== '') newItem.value = parseInt(value);
+        }
+
+        scheduleData.push(newItem);
+        renderItems();
+
+        /* Reset some fields */
+        document.getElementById('new-color').value = '';
+        document.getElementById('new-ramp').value = '';
+        document.getElementById('new-value').value = '';
+    };
+
+    window.saveAll = function() {
+        var utcData = scheduleData.map(localItemToUtc);
+        fetch('api/v1/scheduler', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(utcData)
+        }).then(function(resp) {
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            return resp.json();
+        }).then(function(data) {
+            var utcResp = Array.isArray(data) ? data : [];
+            scheduleData = utcResp.map(utcItemToLocal);
+            renderItems();
+            showSuccess('Schedule saved successfully');
+        }).catch(function(err) {
+            showError('Save failed: ' + err.message);
+        });
+    };
+
+    /* Init */
+    loadInfo().then(function() {
+        updateAddFormVisibility();
+        return loadScheduler();
+    }).then(function() {
+        initNewDays();
+        renderItems();
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('content').classList.remove('hidden');
+    }).catch(function(err) {
+        document.getElementById('loading').textContent = 'Error: ' + err.message;
+    });
+})();
+</script>
+</body>
+</html>
