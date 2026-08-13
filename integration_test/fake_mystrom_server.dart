@@ -37,6 +37,12 @@ class FakeDeviceState {
   String? buttonSeAction; // Button-se per-referer action URL body
   List<Map<String, dynamic>> scheduler = const [];
 
+  /// Report history records (`/api/v1/history`), newest-first. Each entry
+  /// is `{t: ISO-8601 UTC, e: cumulative Ws}`. Tests seed this with a few
+  /// hourly records to exercise the History page; an empty list simulates
+  /// a device with no stored reports yet.
+  List<Map<String, dynamic>> history = const [];
+
   /// Set to true when a `POST /identify` request was received. Tests assert
   /// on this to confirm the identify button fired the right endpoint.
   bool identifyRequested = false;
@@ -308,6 +314,30 @@ class FakeMystromServer {
 
         case '/api/v1/ch_mode':
           await _json(req, {'ch_mode': st.chMode});
+          return;
+
+        case '/api/v1/history':
+          // Report history (firmware >= 5.0.0; WS2, WSE, WSX).
+          // GET returns {records:[...], count, offset, page}. Tests seed
+          // `st.history` with hourly records; the page size is 64. When the
+          // requested page is beyond the available records, return an empty
+          // page so the client stops paginating.
+          final page = int.tryParse(query['page'] ?? '0') ?? 0;
+          const pageSize = 64;
+          final start = page * pageSize;
+          final end = start + pageSize;
+          final slice = start < st.history.length
+              ? st.history.sublist(
+                  start,
+                  end > st.history.length ? st.history.length : end,
+                )
+              : const <Map<String, dynamic>>[];
+          await _json(req, {
+            'records': slice,
+            'count': slice.length,
+            'offset': start,
+            'page': page,
+          });
           return;
 
         case '/api/v1/scheduler':

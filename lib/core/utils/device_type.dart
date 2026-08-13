@@ -11,6 +11,7 @@ enum DeviceType {
     hasTemperature: true,
     hasTimer: true,
     hasScheduler: true,
+    hasHistory: true,
     canIdentify: true,
   ),
   wse(
@@ -22,6 +23,7 @@ enum DeviceType {
     hasTemperature: true,
     hasTimer: true,
     hasScheduler: true,
+    hasHistory: true,
     canIdentify: true,
   ),
   wsx(
@@ -33,6 +35,7 @@ enum DeviceType {
     hasTemperature: false,
     hasTimer: true,
     hasScheduler: true,
+    hasHistory: true,
   ),
   wrs(
     105,
@@ -121,6 +124,10 @@ enum DeviceType {
   final bool hasTimer;
   final bool hasScheduler;
 
+  /// Device stores hourly report history (`/api/v1/history`), available
+  /// on WS2, WSE, WSX since firmware 5.0.0.
+  final bool hasHistory;
+
   /// Device responds to `POST /identify` by blinking/confirming.
   /// Supported on WS2, WSE, WRS, WLL, WMS (PIR) and the Bulb.
   final bool canIdentify;
@@ -156,6 +163,7 @@ enum DeviceType {
     this.hasHumidity = false,
     this.hasTimer = false,
     this.hasScheduler = false,
+    this.hasHistory = false,
     this.canIdentify = false,
     this.identifyViaTimer = false,
   });
@@ -179,6 +187,15 @@ enum DeviceType {
     if (!type.hasScheduler) return false;
     return compareFirmware(firmwareVersion, schedulerMinFw) >= 0;
   }
+
+  /// Report history is supported on WS2, WSE, WSX since firmware 5.0.0.
+  static bool historyAvailable(DeviceType type, String firmwareVersion) {
+    if (!type.hasHistory) return false;
+    return compareFirmware(firmwareVersion, historyMinFw) >= 0;
+  }
+
+  /// Minimum firmware version that ships the report history API.
+  static const String historyMinFw = '5.0.0';
 
   /// Minimum firmware version that ships the scheduler API.
   static const String schedulerMinFw = '5.0.0';

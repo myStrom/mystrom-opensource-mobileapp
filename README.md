@@ -27,6 +27,7 @@ Flutter/Dart mobile app for **local** control of myStrom IoT devices (no cloud).
 - **Scheduler** (firmware >= 5.0.0; WS2, WSE, WRS, WMS, WSX, WLL) — timed `on`/`off`/`toggle` actions per weekday. Entry is unified: a big round Scheduler tile on each detail page (Switch, Strip, Dimmer) plus a Scheduler tile in the device settings page. Variant-aware: color (WRS), ramp (WRS + WLL), value (WLL). Schedule times are stored as UTC on the device; the UI converts to/from local time automatically. Settings stays as a small icon in the AppBar.- **WiFi provisioning (SoftAP)** — full AP-mode wizard: scan host WiFi for myStrom APs by SSID prefix, join the AP, probe `/api/v1/info` to confirm type/MAC, scan home networks via `GET /api/v1/scan` (flat SSID/RSSI array, retry up to 15 s), enter SSID/password (+ advanced: static IP/mask/gateway/DNS, roaming, device name), `POST /api/v1/connect` with legacy-firmware fallback (400 → retry without `roaming`), then add the device to the list. Dropped connect responses (AP shuts down before 200) are treated as success.
 - **WPS provisioning** — instructions + `POST /api/v1/wps`
 - **Action URL builder** — pick target device + action, URL generated automatically
+- **Energy history** (firmware >= 5.0.0; WS2, WSE, WSX) — the device stores hourly report records (`GET /api/v1/history?page=<n>`, ~64 per page, `records:[{t, e}]` with cumulative energy in Ws). A History tile on the Switch detail page opens a daily energy chart: bar chart of per-hour energy (kWh) with a date selector (prev/next, tap to pick from the available range, "Latest" jump). Summary cards show total energy, average/peak power and interval count. Edge cases handled: unsupported firmware (message), unreachable device (retry), no history yet (info), and days with fewer than two records (no deltas computable).
 
 ## Architecture
 
@@ -165,8 +166,8 @@ Key widgets are tagged with stable `Key`s (`appbar_add_device`,
 `settings_name_field`, `settings_room_field`, `settings_favorite_switch`,
 `settings_lockable_switch`, `settings_save_fab`, `settings_back_button`,
 `device_card_<mac>`, `empty_state`, `switch_power_card`,
-`detail_timer_tile`, `detail_scheduler_tile`, `timer_set_button`,
-`card_power_button`, `card_favorite_star`, `strip_on_switch`,
+`detail_timer_tile`, `detail_scheduler_tile`, `detail_history_tile`,
+`timer_set_button`, `card_power_button`, `card_favorite_star`, `strip_on_switch`,
 `strip_settings_button`, `dimmer_on_switch`, `dimmer_value_slider`,
 `dimmer_ramp_slider`, `bulb_on_switch`, `bulb_settings_button`,
 `pir_scheduler_button`, `lcs_action_url_field`, `lcs_save_url_button`,
@@ -189,7 +190,8 @@ Key widgets are tagged with stable `Key`s (`appbar_add_device`,
 `bulb_whites_brightness`, `bulb_ramp_slider`, `timer_mode_dropdown`,
 `scene_action_device_dropdown`,
 `scene_action_chip_on/off/toggle`, `scene_action_add_button`,
-`scene_action_cancel`) so the tests do
+`scene_action_cancel`, `history_back_button`, `history_date_label`,
+`history_prev_day`, `history_next_day`, `history_today`) so the tests do
 not depend on copy that may change.
 
 ### Control integration test (E2E against a fake device)
@@ -201,9 +203,9 @@ The fake server emulates the REST endpoints used by the UI — `/info`,
 `/report`, `/relay`, `/toggle`, `/timer`, `/api/v1/device`,
 `/api/v1/device/self`, `/api/v1/ch_mode`, `/api/v1/ch_mode/<mode>`,
 `/api/v1/scheduler`, `/api/v1/sensors`, `/api/v1/action/button`,
-`/api/v1/actions` and `/api/v1/action` — and keeps per-device
+`/api/v1/actions` and `/api/v1/action`, `/api/v1/history` (firmware >= 5.0.0; WS2, WSE, WSX) — and keeps per-device
 state in memory (relay, on, color, ramp, dimmer value, timer, scheduler,
-LCS button action URL, button action map, button-se action body).
+history records, LCS button action URL, button action map, button-se action body).
 
 The test seeds the Hive store with two devices (a WSE switch and a WRS
 strip) pointing at the fake servers, then exercises:
@@ -222,6 +224,48 @@ Run on Windows desktop:
 flutter test integration_test/control_test.dart -d windows
 ```
 
+### History integration test (E2E against a fake device)
+
+`integration_test/history_test.dart` drives the real Flutter app against
+the fake server with a WS2 device on firmware 5.0.0 whose `/api/v1/history`
+endpoint is seeded with hourly records. It exercises:
+
+- the History tile on the Switch detail page opens the History page and
+  renders the date selector, summary cards (total energy, avg/peak power,
+  intervals) and bar chart
+- a second WS2 device on legacy firmware (2.0.0) shows the
+  "unsupported firmware" message
+- a device with no stored records shows the "no history data" state
+
+The fake server's `/api/v1/history` endpoint paginates the seeded records
+(~64 per page) so the pagination loop in the data source is exercised too.
+
+Run on Windows desktop:
+
+```bash
+flutter test integration_test/history_test.dart -d windows
+```
+### History integration test (E2E against a fake device)
+
+`integration_test/history_test.dart` drives the real Flutter app against
+the fake server with a WS2 device on firmware 5.0.0 whose `/api/v1/history`
+endpoint is seeded with hourly records. It exercises:
+
+- the History tile on the Switch detail page opens the History page and
+  renders the date selector, summary cards (total energy, avg/peak power,
+  intervals) and bar chart
+- a second WS2 device on legacy firmware (2.0.0) shows the
+  "unsupported firmware" message
+- a device with no stored records shows the "no history data" state
+
+The fake server's `/api/v1/history` endpoint paginates the seeded records
+(~64 per page) so the pagination loop in the data source is exercised too.
+
+Run on Windows desktop:
+
+```bash
+flutter test integration_test/history_test.dart -d windows
+```
 ### Per-device-type integration test
 
 `integration_test/devices_test.dart` runs one test per supported device

@@ -12,6 +12,7 @@ import '../providers/device_provider.dart';
 import '../widgets/feature_tiles_row.dart';
 import '../widgets/timer_controls.dart';
 import 'device_settings_page.dart';
+import 'history_page.dart';
 import 'scheduler_page.dart';
 
 /// Switch / plug control page (WS2, WSE, WSX, LCS).
@@ -172,6 +173,12 @@ class _SwitchDetailPageState extends State<SwitchDetailPage> {
                   context,
                   MaterialPageRoute(
                     builder: (_) => SchedulerPage(device: widget.device),
+                  ),
+                ),
+                onHistory: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => HistoryPage(device: widget.device),
                   ),
                 ),
               ),

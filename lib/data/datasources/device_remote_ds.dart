@@ -8,6 +8,7 @@ import '../models/action_url_config.dart';
 import '../models/bulb_state.dart';
 import '../models/device_info.dart';
 import '../models/dimmer_state.dart';
+import '../models/history_record.dart';
 import '../models/pir_state.dart';
 import '../models/scheduler_item.dart';
 import '../models/strip_state.dart';
@@ -452,6 +453,47 @@ class DeviceRemoteDataSource {
         .cast<Map<String, dynamic>>()
         .map(SchedulerItem.fromJson)
         .toList();
+  }
+
+  // ---- Report history (firmware >= 5.0.0; WS2, WSE, WSX) ----
+  //
+  // GET /api/v1/history?page=<n> -> {records:[{t, e}], count, offset, page}
+  // Records come newest-first, ~64 per page. `e` is cumulative energy in
+  // watt-seconds (Ws).
+
+  /// Fetches a single page of history records.
+  ///
+  /// Returns an empty [HistoryPage] (with `count: 0`) when the device has
+  /// no history yet or the page is out of range. Throws [DioException] on
+  /// network/HTTP errors so the caller can distinguish "no data" from
+  /// "device unreachable".
+  Future<HistoryPage> getHistoryPage(String ip, {int page = 0}) async {
+    final res = await _client.get(
+      ip,
+      ApiEndpoints.history,
+      query: {'page': page},
+    );
+    return HistoryPage.fromJson(res.data as Map<String, dynamic>);
+  }
+
+  /// Fetches all available history records, paginating until a page with
+  /// fewer than 64 records is reached (the last/oldest page) or
+  /// [maxPages] is exhausted (safety guard against runaway loops).
+  ///
+  /// Records are returned newest-first, exactly as the device emits them.
+  Future<List<HistoryRecord>> getAllHistory(
+    String ip, {
+    int maxPages = 200,
+  }) async {
+    final all = <HistoryRecord>[];
+    for (var p = 0; p < maxPages; p++) {
+      final page = await getHistoryPage(ip, page: p);
+      if (page.records.isEmpty) break;
+      all.addAll(page.records);
+      // The last (oldest) page contains fewer than 64 records.
+      if (page.count < 64) break;
+    }
+    return all;
   }
 
   // ---- Identification ----

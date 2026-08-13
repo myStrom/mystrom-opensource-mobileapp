@@ -93,6 +93,12 @@ class ApiEndpoints {
   // POST /api/v1/scheduler  -> array of schedule items (UTC times), returns array
   static const scheduler = '/api/v1/scheduler';
 
+  // Report history (firmware >= 5.0.0; WS2, WSE, WSX only)
+  // GET /api/v1/history?page=<n> -> {records:[{t, e}], count, offset, page}
+  // Records come newest-first, ~64 per page, hourly cadence. `t` is an
+  // ISO-8601 UTC timestamp, `e` is cumulative energy in watt-seconds (Ws).
+  static const history = '/api/v1/history';
+
   // Identification (WS2, WSE, WRS, WLL, WMS).
   // POST /identify -> 204 on success. Returns 400 when the device is paired
   // with HomeKit (component of the HomeKit API). Any error/timeout must be

@@ -4,21 +4,24 @@ import '../../domain/entities/device_entity.dart';
 
 /// A row of large, round feature tiles shown on device detail pages.
 ///
-/// Renders a **Timer** tile (always, when the device supports timers) and a
-/// **Scheduler** tile (when the device supports the scheduler). Both are
-/// big colored circles with an icon + label, mirroring the pre-redesign
-/// look. Settings stays in the AppBar as a small icon.
+/// Renders a **Timer** tile (when the device supports timers), a
+/// **Scheduler** tile (when the device supports the scheduler), and a
+/// **History** tile (WS2/WSE/WSX with firmware >= 5.0.0). All are big
+/// colored circles with an icon + label, mirroring the pre-redesign look.
+/// Settings stays in the AppBar as a small icon.
 class FeatureTilesRow extends StatelessWidget {
   const FeatureTilesRow({
     super.key,
     required this.device,
     required this.onTimer,
     this.onScheduler,
+    this.onHistory,
   });
 
   final DeviceEntity device;
   final VoidCallback onTimer;
   final VoidCallback? onScheduler;
+  final VoidCallback? onHistory;
 
   @override
   Widget build(BuildContext context) {
@@ -38,6 +41,14 @@ class FeatureTilesRow extends StatelessWidget {
           label: 'Scheduler',
           color: Colors.purple,
           onTap: onScheduler!,
+        ),
+      if (device.type.hasHistory && onHistory != null)
+        _FeatureTileData(
+          key: const Key('detail_history_tile'),
+          icon: Icons.bar_chart,
+          label: 'History',
+          color: Colors.teal,
+          onTap: onHistory!,
         ),
     ];
     if (tiles.isEmpty) return const SizedBox.shrink();
