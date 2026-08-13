@@ -99,8 +99,6 @@ class _SchedulerPageState extends State<SchedulerPage> {
       if (!_schedulerSupported) {
         setState(() {
           _loading = false;
-          _error =
-              _unsupportedReason ?? 'Scheduler not supported on this device';
         });
         return;
       }
@@ -133,10 +131,9 @@ class _SchedulerPageState extends State<SchedulerPage> {
             'Scheduler is only available on WS2, WSE, WRS, WMS, WSX and WLL.';
       } else if (fw.isEmpty) {
         _unsupportedReason =
-            'Could not read firmware version. Scheduler requires firmware >= 5.0.0.';
+            'Could not read firmware version. Requires firmware >= 5.0.0.';
       } else {
-        _unsupportedReason =
-            'Scheduler requires firmware >= 5.0.0 (current: $fw).';
+        _unsupportedReason = 'Requires firmware >= 5.0.0 (current: $fw).';
       }
       return;
     }
@@ -282,6 +279,30 @@ class _SchedulerPageState extends State<SchedulerPage> {
   Widget _buildBody(BuildContext context) {
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
+    }
+    if (!_schedulerSupported) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.schedule_outlined,
+                size: 64,
+                color: Theme.of(context).hintColor,
+              ),
+              const SizedBox(height: 20),
+              Text(
+                _unsupportedReason ??
+                    'Scheduler not supported on this device',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            ],
+          ),
+        ),
+      );
     }
     if (_error != null) {
       return ListView(

@@ -141,9 +141,9 @@ class _HistoryPageState extends State<HistoryPage> {
       return 'Report history is only available on WS2, WSE and WSX.';
     }
     if (fw.isEmpty) {
-      return 'Could not read firmware version. History requires firmware >= 5.0.0.';
+      return 'Could not read firmware version. Requires firmware >= 5.0.0.';
     }
-    return 'History requires firmware >= 5.0.0 (current: $fw).';
+    return 'Requires firmware >= 5.0.0 (current: $fw).';
   }
 
   // ---- Date helpers ----
@@ -182,8 +182,10 @@ class _HistoryPageState extends State<HistoryPage> {
         out.add(r);
       }
     }
-    out.sort((a, b) =>
-        _parseTimestamp(a.timestamp).compareTo(_parseTimestamp(b.timestamp)));
+    out.sort(
+      (a, b) =>
+          _parseTimestamp(a.timestamp).compareTo(_parseTimestamp(b.timestamp)),
+    );
     return out;
   }
 
@@ -262,7 +264,8 @@ class _HistoryPageState extends State<HistoryPage> {
     if (_allRecords.isEmpty) {
       return _CenterMessage(
         icon: Icons.inbox,
-        text: 'No history data available yet.\n'
+        text:
+            'No history data available yet.\n'
             'Reports are stored hourly once the device is on firmware >= 5.0.0.',
       );
     }
@@ -383,12 +386,14 @@ class _HistoryContent extends StatelessWidget {
       final dWs = records[i].energyWs - records[i - 1].energyWs;
       final kwh = dWs / 3600000;
       final watts = dt > 0 ? dWs / dt : 0.0;
-      out.add(_Interval(
-        kwh: kwh,
-        watts: watts,
-        hour: formatHour(t1),
-        fullTime: formatFull(t1),
-      ));
+      out.add(
+        _Interval(
+          kwh: kwh,
+          watts: watts,
+          hour: formatHour(t1),
+          fullTime: formatFull(t1),
+        ),
+      );
     }
     return out;
   }
@@ -433,10 +438,8 @@ class _DateBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final canPrev =
-        oldestDate == null || selectedDate.isAfter(oldestDate!);
-    final canNext =
-        newestDate == null || selectedDate.isBefore(newestDate!);
+    final canPrev = oldestDate == null || selectedDate.isAfter(oldestDate!);
+    final canNext = newestDate == null || selectedDate.isBefore(newestDate!);
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -519,7 +522,10 @@ class _SummaryGrid extends StatelessWidget {
         SizedBox(
           width: _summaryWidth(context),
           height: 64,
-          child: _SummaryCard('Total Energy', '${totalKwh.toStringAsFixed(4)} kWh'),
+          child: _SummaryCard(
+            'Total Energy',
+            '${totalKwh.toStringAsFixed(4)} kWh',
+          ),
         ),
         SizedBox(
           width: _summaryWidth(context),
@@ -575,7 +581,10 @@ class _SummaryCard extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               label,
-              style: TextStyle(fontSize: 10, color: Theme.of(context).hintColor),
+              style: TextStyle(
+                fontSize: 10,
+                color: Theme.of(context).hintColor,
+              ),
             ),
           ],
         ),
@@ -629,7 +638,12 @@ class _EnergyChartPainter extends CustomPainter {
   _EnergyChartPainter({required this.intervals});
   final List<_Interval> intervals;
 
-  static const _margin = EdgeInsets.only(left: 48, top: 16, right: 12, bottom: 36);
+  static const _margin = EdgeInsets.only(
+    left: 48,
+    top: 16,
+    right: 12,
+    bottom: 36,
+  );
   static const _gridLines = 5;
   static const _barColor = Color(0xFF45b40a);
 
@@ -696,7 +710,10 @@ class _EnergyChartPainter extends CustomPainter {
 
     // Bars.
     const barGap = 2.0;
-    final barW = (plotW / intervals.length - barGap).clamp(1.0, double.infinity);
+    final barW = (plotW / intervals.length - barGap).clamp(
+      1.0,
+      double.infinity,
+    );
     for (var i = 0; i < intervals.length; i++) {
       final barH = intervals[i].kwh / maxKwh * plotH;
       final drawn = barH < 0.5 ? 0.5 : barH;

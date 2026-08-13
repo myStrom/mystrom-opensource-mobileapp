@@ -47,8 +47,8 @@ class HistoryPage {
     return HistoryPage(
       records: rawRecords is List
           ? rawRecords
-              .map((r) => HistoryRecord.fromJson(r as Map<String, dynamic>))
-              .toList()
+                .map((r) => HistoryRecord.fromJson(r as Map<String, dynamic>))
+                .toList()
           : const [],
       count: (j['count'] as num?)?.toInt() ?? 0,
       offset: (j['offset'] as num?)?.toInt() ?? 0,
