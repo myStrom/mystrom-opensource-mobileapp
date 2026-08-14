@@ -387,6 +387,55 @@ void main() {
     switchState.relay = false;
   });
 
+  testWidgets('relay action URLs can be set and cleared from settings', (
+    tester,
+  ) async {
+    await touchLastSeen();
+    await pumpApp(tester);
+
+    // Open the switch detail page → settings.
+    await tester.tap(find.byKey(const Key('device_card_AA:BB:CC:DD:EE:F0')));
+    await tester.pumpAndSettle(const Duration(seconds: 1));
+    await tester.tap(find.byKey(const Key('detail_settings_button')));
+    await tester.pumpAndSettle();
+
+    // Scroll to the "When relay turns ON" tile and tap it.
+    await tester.ensureVisible(
+      find.byKey(const Key('relay_action_on_tile')),
+    );
+    await tester.tap(find.byKey(const Key('relay_action_on_tile')));
+    await tester.pumpAndSettle();
+
+    // Enter a URL in the dialog and save.
+    await tester.enterText(
+      find.byKey(const Key('relay_action_on_field')),
+      'http://192.168.1.50/toggle',
+    );
+    await tester.tap(find.byKey(const Key('relay_action_on_save')));
+    await tester.pumpAndSettle(const Duration(seconds: 1));
+
+    expect(switchState.relayActionOn, 'http://192.168.1.50/toggle');
+
+    // Open the OFF action tile and clear it.
+    await tester.ensureVisible(
+      find.byKey(const Key('relay_action_off_tile')),
+    );
+    await tester.tap(find.byKey(const Key('relay_action_off_tile')));
+    await tester.pumpAndSettle();
+
+    // Clear (sends empty body).
+    await tester.tap(find.byKey(const Key('relay_action_off_clear')));
+    await tester.pumpAndSettle(const Duration(seconds: 1));
+
+    expect(switchState.relayActionOff, '');
+
+    // Go back to dashboard.
+    await tester.tap(find.byKey(const Key('settings_back_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('detail_back_button')));
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('all devices are off after the test suite', (tester) async {
     // Turn the switch ON first to make sure the final assertion is
     // meaningful, then turn everything OFF from the dashboard cards.

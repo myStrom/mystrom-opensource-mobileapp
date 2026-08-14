@@ -325,6 +325,33 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
               _LcsButtonActionTile(device: d),
             ],
 
+            // ---- Relay action URLs (WS2, WSE, WSX) ----
+            if (d.type.hasRelayAction) ...[
+              const SizedBox(height: 24),
+              const Divider(),
+              const Text(
+                'Relay actions',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'HTTP requests fired when the relay turns ON or OFF. '
+                'Leave blank to disable.',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 8),
+              _RelayActionTile(
+                key: const Key('relay_action_on_tile'),
+                device: d,
+                relayOn: true,
+              ),
+              _RelayActionTile(
+                key: const Key('relay_action_off_tile'),
+                device: d,
+                relayOn: false,
+              ),
+            ],
+
             // ---- Identify (WS2, WSE, WRS, WLL, WMS, Bulb) ----
             if (d.type.identifyAvailable) ...[
               const SizedBox(height: 24),
@@ -583,6 +610,178 @@ class _LcsButtonActionTileState extends State<_LcsButtonActionTile> {
       ),
       trailing: const Icon(Icons.chevron_right),
       onTap: _pick,
+    );
+  }
+}
+
+/// Tile for a single relay action URL (ON or OFF).
+///
+/// WS2 / WSE / WSX devices can fire an HTTP request when the relay changes
+/// state. This tile loads the current URL, lets the user pick a target via
+/// the [ActionUrlPicker] or type a raw URL, and saves/clears it via
+/// `POST /api/v1/action/relay/<on|off>`.
+class _RelayActionTile extends StatefulWidget {
+  const _RelayActionTile({
+    super.key,
+    required this.device,
+    required this.relayOn,
+  });
+
+  final DeviceEntity device;
+  final bool relayOn;
+
+  @override
+  State<_RelayActionTile> createState() => _RelayActionTileState();
+}
+
+class _RelayActionTileState extends State<_RelayActionTile> {
+  String _currentUrl = '';
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final ip = widget.device.bestIp;
+    if (ip == null) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
+    try {
+      final remote = DeviceRemoteDataSource(
+        DeviceHttpClient(token: widget.device.token),
+      );
+      final actions = await remote.getRelayActions(ip);
+      if (!mounted) return;
+      setState(() {
+        _currentUrl = widget.relayOn ? actions['on'] ?? '' : actions['off'] ?? '';
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _edit() async {
+    final ip = widget.device.bestIp;
+    if (ip == null) return;
+    final controller = TextEditingController(text: _currentUrl);
+    final devices = context.read<DeviceProvider>().devices;
+    final label = widget.relayOn ? 'ON' : 'OFF';
+
+    final url = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Text('Relay $label action'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                key: Key('relay_action_${widget.relayOn ? 'on' : 'off'}_field'),
+                controller: controller,
+                decoration: const InputDecoration(
+                  labelText: 'URL',
+                  hintText: 'http://192.168.1.50/toggle',
+                ),
+                keyboardType: TextInputType.url,
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () async {
+                    final picked = await showDialog<String>(
+                      context: ctx,
+                      builder: (_) => ActionUrlPicker(
+                        devices: devices,
+                        onUrlGenerated: (u) => Navigator.pop(ctx, u),
+                      ),
+                    );
+                    if (picked != null) controller.text = picked;
+                  },
+                  icon: const Icon(Icons.devices, size: 18),
+                  label: const Text('Pick from devices'),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              key: Key(
+                'relay_action_${widget.relayOn ? 'on' : 'off'}_clear',
+              ),
+              onPressed: () => Navigator.pop(ctx, ''),
+              child: const Text('Clear'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, null),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              key: Key(
+                'relay_action_${widget.relayOn ? 'on' : 'off'}_save',
+              ),
+              onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+    if (url == null || !mounted) {
+      controller.dispose();
+      return;
+    }
+    try {
+      final remote = DeviceRemoteDataSource(
+        DeviceHttpClient(token: widget.device.token),
+      );
+      await remote.setRelayAction(ip, on: widget.relayOn, url: url);
+      controller.dispose();
+      if (!mounted) return;
+      // Reload state safely instead of setState (GET /api/v1/action/relay)
+      await _load();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            url.isEmpty
+                ? 'Relay $label action cleared'
+                : 'Relay $label action saved: $url',
+          ),
+        ),
+      );
+    } catch (e) {
+      controller.dispose();
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Save failed: $e')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final label = widget.relayOn ? 'When relay turns ON' : 'When relay turns OFF';
+    return ListTile(
+      leading: Icon(
+        widget.relayOn ? Icons.power : Icons.power_settings_new,
+      ),
+      title: Text(label),
+      subtitle: Text(
+        _loading
+            ? 'Loading...'
+            : (_currentUrl.isNotEmpty ? _currentUrl : 'Not configured'),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: _edit,
     );
   }
 }

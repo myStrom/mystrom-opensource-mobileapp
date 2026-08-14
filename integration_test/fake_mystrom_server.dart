@@ -37,6 +37,12 @@ class FakeDeviceState {
   String? buttonSeAction; // Button-se per-referer action URL body
   List<Map<String, dynamic>> scheduler = const [];
 
+  /// Relay action URLs (WS2, WSE, WSX) — fired when relay turns ON/OFF.
+  /// Mirrors the real `{url, on, off}` response from
+  /// `GET /api/v1/action/relay`.
+  String relayActionOn = '';
+  String relayActionOff = '';
+
   /// Report history records (`/api/v1/history`), newest-first. Each entry
   /// is `{t: ISO-8601 UTC, e: cumulative Ws}`. Tests seed this with a few
   /// hourly records to exercise the History page; an empty list simulates
@@ -142,6 +148,36 @@ class FakeMystromServer {
       if (path.startsWith('/api/v1/ch_mode/') && req.method == 'POST') {
         st.chMode = path.substring('/api/v1/ch_mode/'.length);
         await _empty(req);
+        return;
+      }
+
+      // Relay action URLs: GET/POST /api/v1/action/relay[/<on|off>]
+      if (path.startsWith('/api/v1/action/relay')) {
+        if (req.method == 'GET') {
+          await _json(req, {
+            'url': '',
+            'on': st.relayActionOn,
+            'off': st.relayActionOff,
+          });
+        } else {
+          // POST: parse url= from body (empty body = clear).
+          var url = '';
+          if (body != null && body.isNotEmpty) {
+            for (final part in body.split('&')) {
+              final eq = part.indexOf('=');
+              if (eq > 0 &&
+                  Uri.decodeQueryComponent(part.substring(0, eq)) == 'url') {
+                url = Uri.decodeQueryComponent(part.substring(eq + 1));
+              }
+            }
+          }
+          if (path.endsWith('/on')) {
+            st.relayActionOn = url;
+          } else if (path.endsWith('/off')) {
+            st.relayActionOff = url;
+          }
+          await _empty(req);
+        }
         return;
       }
 

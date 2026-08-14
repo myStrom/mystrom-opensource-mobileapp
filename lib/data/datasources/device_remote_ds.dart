@@ -356,6 +356,35 @@ class DeviceRemoteDataSource {
     await _client.postRawForm(ip, ApiEndpoints.lcsButtonAction, 'url=$url');
   }
 
+  // ---- Relay Action URLs (WS2, WSE, WSX) ----
+  //
+  // Each switch can fire an HTTP request when the relay turns ON or OFF.
+  // GET  /api/v1/action/relay[/<on|off>]  -> {url, on, off}
+  // POST /api/v1/action/relay/<on|off>    body=url=<URL>  -> sets action
+  // POST /api/v1/action/relay/<on|off>    body=(empty)     -> clears action
+
+  /// Fetch both relay action URLs (on + off) from the device.
+  /// Returns a map with keys `on` and `off` (empty strings when unset).
+  Future<Map<String, String>> getRelayActions(String ip) async {
+    final res = await _client.get(ip, ApiEndpoints.relayAction);
+    final data = res.data;
+    if (data is Map<String, dynamic>) {
+      return {
+        'on': data['on'] as String? ?? '',
+        'off': data['off'] as String? ?? '',
+      };
+    }
+    return {'on': '', 'off': ''};
+  }
+
+  /// Set (or clear when [url] is empty) the relay action URL for the given
+  /// state [on] (true = relay ON, false = relay OFF).
+  Future<void> setRelayAction(String ip, {required bool on, String url = ''}) async {
+    final suffix = on ? '/on' : '/off';
+    final body = url.isEmpty ? '' : 'url=$url';
+    await _client.postRawForm(ip, '${ApiEndpoints.relayAction}$suffix', body);
+  }
+
   // ---- Button (single button) ----
 
   Future<ActionUrlConfigModel> getButtonActions(String ip) async {
