@@ -63,10 +63,14 @@ void main() {
     // Seed 3 hourly records (newest-first) for "today" so the History
     // page has data to chart. Cumulative energy `e` is in watt-seconds,
     // increasing by ~36000 Ws (0.01 kWh) per hour.
-    final now = DateTime.now().toUtc();
-    final t0 = DateTime.utc(now.year, now.month, now.day, 10, 0, 0);
-    final t1 = DateTime.utc(now.year, now.month, now.day, 11, 0, 0);
-    final t2 = DateTime.utc(now.year, now.month, now.day, 12, 0, 0);
+    //
+    // The myStrom device emits timestamps in local device time with a
+    // trailing 'Z' (which is NOT actually UTC). We seed local hours
+    // directly so the bars land on the expected hours.
+    final now = DateTime.now();
+    final t0 = DateTime(now.year, now.month, now.day, 10, 0, 0);
+    final t1 = DateTime(now.year, now.month, now.day, 11, 0, 0);
+    final t2 = DateTime(now.year, now.month, now.day, 12, 0, 0);
     switchState.history = [
       {'t': _iso(t2), 'e': 72000.0},
       {'t': _iso(t1), 'e': 36000.0},

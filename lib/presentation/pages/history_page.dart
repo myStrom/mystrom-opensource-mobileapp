@@ -148,14 +148,11 @@ class _HistoryPageState extends State<HistoryPage> {
 
   // ---- Date helpers ----
 
-  /// Parse an ISO-8601 timestamp into a local [DateTime]. The device emits
-  /// UTC times with a trailing `Z`; if the suffix is missing, we append it
-  /// so the string is interpreted as UTC.
-  DateTime _parseTimestamp(String isoStr) {
-    if (isoStr.isEmpty) return DateTime.fromMillisecondsSinceEpoch(0);
-    final s = isoStr.endsWith('Z') ? isoStr : '${isoStr}Z';
-    return DateTime.parse(s).toLocal();
-  }
+  /// Parse a timestamp from the history API into a [DateTime].
+  ///
+  /// Delegates to [parseHistoryTimestamp] (see its docs for the timezone
+  /// rationale).
+  DateTime _parseTimestamp(String isoStr) => parseHistoryTimestamp(isoStr);
 
   /// Normalize a [DateTime] to local midnight.
   DateTime _dayOnly(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
@@ -764,4 +761,20 @@ class _Legend extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Parse a timestamp from the myStrom history API into a [DateTime].
+///
+/// The myStrom device emits timestamps in **local device time** with a
+/// trailing `Z` (e.g. `2026-08-18T23:00:10Z`). Despite the `Z` suffix,
+/// these are NOT UTC — the device clock runs in local time. Treating
+/// them as UTC and calling `.toLocal()` would apply the timezone offset
+/// a second time, shifting bars by the local UTC offset (e.g. 2 h in
+/// CEST). We therefore strip the `Z` and parse as a naive local time.
+DateTime parseHistoryTimestamp(String isoStr) {
+  if (isoStr.isEmpty) return DateTime.fromMillisecondsSinceEpoch(0);
+  // Strip trailing 'Z' so DateTime.parse doesn't interpret as UTC.
+  final s =
+      isoStr.endsWith('Z') ? isoStr.substring(0, isoStr.length - 1) : isoStr;
+  return DateTime.parse(s);
 }
