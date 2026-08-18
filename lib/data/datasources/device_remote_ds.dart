@@ -339,6 +339,35 @@ class DeviceRemoteDataSource {
     return pir.map((k, v) => MapEntry(k, v.toString()));
   }
 
+  // ---- Switch Button Action (WS2, WSE, WSX) ----
+
+  /// Get the button action URLs configured on a switch device.
+  /// Response is `{url, on, off}` — returns `(onUrl, offUrl)`.
+  Future<({String on, String off})> getSwitchButtonActions(String ip) async {
+    final res = await _client.get(ip, ApiEndpoints.switchButtonAction);
+    final data = res.data;
+    if (data is Map<String, dynamic>) {
+      return (on: data['on'] as String? ?? '', off: data['off'] as String? ?? '');
+    }
+    return (on: '', off: '');
+  }
+
+  /// Set the button action URL for the ON slot on a switch device.
+  /// Uses a raw text body (NOT form-encoded).
+  Future<void> setSwitchButtonActionOn(String ip, String url) async {
+    await _client.postRawText(ip, '${ApiEndpoints.switchButtonAction}/on', url);
+  }
+
+  /// Set the button action URL for the OFF slot on a switch device.
+  /// Uses a raw text body (NOT form-encoded).
+  Future<void> setSwitchButtonActionOff(String ip, String url) async {
+    await _client.postRawText(
+      ip,
+      '${ApiEndpoints.switchButtonAction}/off',
+      url,
+    );
+  }
+
   // ---- LCS Button Action (single URL) ----
 
   /// Get the button action URL configured on an LCS device.
@@ -354,35 +383,6 @@ class DeviceRemoteDataSource {
   /// Set the button action URL on an LCS device.
   Future<void> setLcsButtonAction(String ip, String url) async {
     await _client.postRawForm(ip, ApiEndpoints.lcsButtonAction, 'url=$url');
-  }
-
-  // ---- Relay Action URLs (WS2, WSE, WSX) ----
-  //
-  // Each switch can fire an HTTP request when the relay turns ON or OFF.
-  // GET  /api/v1/action/relay[/<on|off>]  -> {url, on, off}
-  // POST /api/v1/action/relay/<on|off>    body=url=<URL>  -> sets action
-  // POST /api/v1/action/relay/<on|off>    body=(empty)     -> clears action
-
-  /// Fetch both relay action URLs (on + off) from the device.
-  /// Returns a map with keys `on` and `off` (empty strings when unset).
-  Future<Map<String, String>> getRelayActions(String ip) async {
-    final res = await _client.get(ip, ApiEndpoints.relayAction);
-    final data = res.data;
-    if (data is Map<String, dynamic>) {
-      return {
-        'on': data['on'] as String? ?? '',
-        'off': data['off'] as String? ?? '',
-      };
-    }
-    return {'on': '', 'off': ''};
-  }
-
-  /// Set (or clear when [url] is empty) the relay action URL for the given
-  /// state [on] (true = relay ON, false = relay OFF).
-  Future<void> setRelayAction(String ip, {required bool on, String url = ''}) async {
-    final suffix = on ? '/on' : '/off';
-    final body = url.isEmpty ? '' : 'url=$url';
-    await _client.postRawForm(ip, '${ApiEndpoints.relayAction}$suffix', body);
   }
 
   // ---- Button (single button) ----

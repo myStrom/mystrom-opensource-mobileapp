@@ -399,7 +399,7 @@ void main() {
     // Tap "single" — the ActionUrlPicker dialog opens.
     await tester.tap(find.byKey(const Key('button_scheme_single')));
     await tester.pumpAndSettle(const Duration(seconds: 1));
-    expect(find.text('Generate URL'), findsOneWidget);
+    expect(find.text('Assign'), findsOneWidget);
 
     // Close the dialog and go back.
     await tester.tap(find.text('Cancel').first);

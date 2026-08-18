@@ -208,6 +208,55 @@ void main() {
     await deviceDs.delete(dev.mac);
   });
 
+  testWidgets('WS2 switch saves a button action URL via settings', (
+    tester,
+  ) async {
+    const mac = 'AA:BB:CC:DD:EE:B1';
+    final dev = await addDevice(
+      mac: mac,
+      name: 'WS2 Switch',
+      typeCode: 106,
+      type: 'ws2',
+      model: 'WS2',
+    );
+    await pumpApp(tester);
+
+    await tester.tap(find.byKey(const Key('device_card_$mac')));
+    await tester.pumpAndSettle(const Duration(seconds: 1));
+
+    // Open settings — the button action tiles should be visible.
+    await tester.tap(find.byKey(const Key('detail_settings_button')));
+    await tester.pumpAndSettle(const Duration(seconds: 1));
+
+    // Scroll to the ON action tile.
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('switch_action_on_tile')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.byKey(const Key('switch_action_on_tile')), findsOneWidget);
+    expect(find.byKey(const Key('switch_action_off_tile')), findsOneWidget);
+    // Initially not configured.
+    expect(find.text('Not configured'), findsNWidgets(2));
+
+    // Tap the ON tile — the ActionUrlPicker dialog opens.
+    await tester.tap(find.byKey(const Key('switch_action_on_tile')));
+    await tester.pumpAndSettle(const Duration(seconds: 1));
+    expect(find.text('Assign'), findsOneWidget);
+
+    // Close the dialog and go back.
+    await tester.tap(find.text('Cancel').first);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('settings_back_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('detail_back_button')));
+    await tester.pumpAndSettle();
+
+    await dev.server.stop();
+    await deviceDs.delete(dev.mac);
+  });
+
   testWidgets('WRS strip turns on, recolors and turns off', (tester) async {
     const mac = 'AA:BB:CC:DD:EE:C0';
     final dev = await addDevice(

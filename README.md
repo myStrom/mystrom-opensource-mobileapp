@@ -26,8 +26,7 @@ Flutter/Dart mobile app for **local** control of myStrom IoT devices (no cloud).
 - **Null-safe device info** — the settings page only shows info lines (`/info`) whose values are present; missing fields are omitted instead of showing empty values.
 - **Scheduler** (firmware >= 5.0.0; WS2, WSE, WRS, WMS, WSX, WLL) — timed `on`/`off`/`toggle` actions per weekday. Entry is unified: a big round Scheduler tile on each detail page (Switch, Strip, Dimmer) plus a Scheduler tile in the device settings page. Variant-aware: color (WRS), ramp (WRS + WLL), value (WLL). Schedule times are stored as UTC on the device; the UI converts to/from local time automatically. Settings stays as a small icon in the AppBar.- **WiFi provisioning (SoftAP)** — full AP-mode wizard: scan host WiFi for myStrom APs by SSID prefix, join the AP, probe `/api/v1/info` to confirm type/MAC, scan home networks via `GET /api/v1/scan` (flat SSID/RSSI array, retry up to 15 s), enter SSID/password (+ advanced: static IP/mask/gateway/DNS, roaming, device name), `POST /api/v1/connect` with legacy-firmware fallback (400 → retry without `roaming`), then add the device to the list. Dropped connect responses (AP shuts down before 200) are treated as success.
 - **WPS provisioning** — instructions + `POST /api/v1/wps`
-- **Action URL builder** — pick target device + action, URL generated automatically
-- **Relay action URLs** (WS2, WSE, WSX; all firmware versions) — the switch can fire an HTTP request when the relay turns ON or OFF (`GET/POST /api/v1/action/relay/<on|off>`, body `url=<URL>`, empty body clears). Configured in device settings as two tiles ("When relay turns ON" / "When relay turns OFF"); supports manual URL entry or picking from the action URL builder.
+- **Action URL builder** — pick target device + action, URL generated automatically. LCS uses a single button action slot (`/api/v1/action/button`). WS2/WSE/WSX switches have two separate slots — ON and OFF — configured via `/api/v1/action/relay/on` and `/api/v1/action/relay/off` (raw text body). The button action section in device settings shows one tile (LCS) or two tiles (switch ON/OFF), each displaying the current URL or "Not configured".
 - **Energy history** (firmware >= 5.0.0; WS2, WSE, WSX) — the device stores hourly report records (`GET /api/v1/history?page=<n>`, ~64 per page, `records:[{t, e}]` with cumulative energy in Ws). A History tile on the Switch detail page opens a daily energy chart: bar chart of per-hour energy (kWh) with a date selector (prev/next, tap to pick from the available range, "Latest" jump). Summary cards show total energy, average/peak power and interval count. Edge cases handled: unsupported firmware (message), unreachable device (retry), no history yet (info), and days with fewer than two records (no deltas computable).
 
 ## Architecture
@@ -180,8 +179,6 @@ Key widgets are tagged with stable `Key`s (`appbar_add_device`,
 `scheduler_discard_cancel`, `scheduler_discard_confirm`,
 `settings_remove_button`, `settings_color_palette`,
 `settings_strip_settings_tile`, `lcs_action_tile` (LCS button action in settings),
-`relay_action_on_tile`, `relay_action_off_tile`,
-`relay_action_on/off_field`, `relay_action_on/off_save`, `relay_action_on/off_clear`,
 `settings_identify_tile`, `identify_<mac>` (discovered-device card),
 `scene_discard_cancel`, `scene_discard_confirm`,
 `strip_chmode_<mode>`, `strip_settings_back_button`,
@@ -206,10 +203,9 @@ The fake server emulates the REST endpoints used by the UI — `/info`,
 `/report`, `/relay`, `/toggle`, `/timer`, `/api/v1/device`,
 `/api/v1/device/self`, `/api/v1/ch_mode`, `/api/v1/ch_mode/<mode>`,
 `/api/v1/scheduler`, `/api/v1/sensors`, `/api/v1/action/button`,
-`/api/v1/actions` and `/api/v1/action`, `/api/v1/action/relay[/<on|off>]`,
-`/api/v1/history` (firmware >= 5.0.0; WS2, WSE, WSX) — and keeps per-device
+`/api/v1/actions` and `/api/v1/action`, `/api/v1/history` (firmware >= 5.0.0; WS2, WSE, WSX) — and keeps per-device
 state in memory (relay, on, color, ramp, dimmer value, timer, scheduler,
-history records, relay action URLs, LCS button action URL, button action map, button-se action body).
+history records, LCS button action URL, button action map, button-se action body).
 
 The test seeds the Hive store with two devices (a WSE switch and a WRS
 strip) pointing at the fake servers, then exercises:
@@ -220,8 +216,6 @@ strip) pointing at the fake servers, then exercises:
   against the Hive store)
 - scheduler: add an entry, save (verified against the fake server state)
 - scene editor: name a scene, save
-- relay action URLs: set the ON action URL, clear the OFF action URL
-  (verified against the fake server state)
 - final assertion: every fake device is OFF after the suite
 
 Run on Windows desktop:

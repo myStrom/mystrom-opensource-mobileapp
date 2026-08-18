@@ -33,15 +33,11 @@ class FakeDeviceState {
   String timerMode = 'none'; // last timer mode set
   int timerSeconds = 0; // last timer duration set
   String? lcsButtonAction; // LCS button action URL
+  String? switchButtonActionOn; // WS2/WSE/WSX ON slot
+  String? switchButtonActionOff; // WS2/WSE/WSX OFF slot
   dynamic buttonActions; // Button (legacy) / Button-se action map
   String? buttonSeAction; // Button-se per-referer action URL body
   List<Map<String, dynamic>> scheduler = const [];
-
-  /// Relay action URLs (WS2, WSE, WSX) — fired when relay turns ON/OFF.
-  /// Mirrors the real `{url, on, off}` response from
-  /// `GET /api/v1/action/relay`.
-  String relayActionOn = '';
-  String relayActionOff = '';
 
   /// Report history records (`/api/v1/history`), newest-first. Each entry
   /// is `{t: ISO-8601 UTC, e: cumulative Ws}`. Tests seed this with a few
@@ -151,33 +147,17 @@ class FakeMystromServer {
         return;
       }
 
-      // Relay action URLs: GET/POST /api/v1/action/relay[/<on|off>]
-      if (path.startsWith('/api/v1/action/relay')) {
-        if (req.method == 'GET') {
-          await _json(req, {
-            'url': '',
-            'on': st.relayActionOn,
-            'off': st.relayActionOff,
-          });
-        } else {
-          // POST: parse url= from body (empty body = clear).
-          var url = '';
-          if (body != null && body.isNotEmpty) {
-            for (final part in body.split('&')) {
-              final eq = part.indexOf('=');
-              if (eq > 0 &&
-                  Uri.decodeQueryComponent(part.substring(0, eq)) == 'url') {
-                url = Uri.decodeQueryComponent(part.substring(eq + 1));
-              }
-            }
-          }
-          if (path.endsWith('/on')) {
-            st.relayActionOn = url;
-          } else if (path.endsWith('/off')) {
-            st.relayActionOff = url;
-          }
-          await _empty(req);
+      // Switch button action slots: POST /api/v1/action/relay/<on|off>
+      // sets the URL for that slot via a raw text body.
+      if (path.startsWith('/api/v1/action/relay/') && req.method == 'POST') {
+        final slot = path.substring('/api/v1/action/relay/'.length);
+        final url = (body ?? '').isNotEmpty ? body : '';
+        if (slot == 'on') {
+          st.switchButtonActionOn = url;
+        } else if (slot == 'off') {
+          st.switchButtonActionOff = url;
         }
+        await _empty(req);
         return;
       }
 
@@ -268,6 +248,20 @@ class FakeMystromServer {
             'battery': {'voltage': 3.0, 'charging': false},
             'charger': {'voltage': 0.0, 'charging': false},
           });
+          return;
+
+        case '/api/v1/action/relay':
+          // Switch (WS2/WSE/WSX) button action URL:
+          // GET returns {url, on, off}; POST to /on or /off sets slots.
+          if (req.method == 'GET') {
+            await _json(req, {
+              'url': '',
+              'on': st.switchButtonActionOn ?? '',
+              'off': st.switchButtonActionOff ?? '',
+            });
+          } else {
+            await _empty(req);
+          }
           return;
 
         case '/api/v1/action/button':

@@ -81,11 +81,9 @@ class ApiEndpoints {
   // LCS button action (single URL)
   static const lcsButtonAction = '/api/v1/action/button';
 
-  // Relay action URLs (WS2, WSE, WSX) — triggered on relay state change.
-  // GET  /api/v1/action/relay[/<on|off>]  -> {url, on, off}
-  // POST /api/v1/action/relay/<on|off>    body=url=<URL>  -> sets action
-  // POST /api/v1/action/relay/<on|off>    body=(empty)     -> clears action
-  static const relayAction = '/api/v1/action/relay';
+  // Switch button action (WS2, WSE, WSX)
+  // GET returns {url, on, off}; POST sets the default URL via raw text body.
+  static const switchButtonAction = '/api/v1/action/relay';
 
   // Button-se (BP2 / BM1)
   static const buttonSeSensors = '/api/v1/sensors';

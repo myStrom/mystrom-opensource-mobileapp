@@ -40,7 +40,7 @@ class _ActionUrlPickerState extends State<ActionUrlPicker> {
         .toList();
 
     return AlertDialog(
-      title: const Text('Pick target action'),
+      title: const Text('Assign action'),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -94,7 +94,7 @@ class _ActionUrlPickerState extends State<ActionUrlPicker> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancel'),
         ),
-        FilledButton(onPressed: _generate, child: const Text('Generate URL')),
+        FilledButton(onPressed: _generate, child: const Text('Assign')),
       ],
     );
   }

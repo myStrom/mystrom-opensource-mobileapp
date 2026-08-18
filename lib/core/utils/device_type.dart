@@ -12,7 +12,6 @@ enum DeviceType {
     hasTimer: true,
     hasScheduler: true,
     hasHistory: true,
-    hasRelayAction: true,
     canIdentify: true,
   ),
   wse(
@@ -25,7 +24,6 @@ enum DeviceType {
     hasTimer: true,
     hasScheduler: true,
     hasHistory: true,
-    hasRelayAction: true,
     canIdentify: true,
   ),
   wsx(
@@ -38,7 +36,6 @@ enum DeviceType {
     hasTimer: true,
     hasScheduler: true,
     hasHistory: true,
-    hasRelayAction: true,
   ),
   wrs(
     105,
@@ -131,10 +128,6 @@ enum DeviceType {
   /// on WS2, WSE, WSX since firmware 5.0.0.
   final bool hasHistory;
 
-  /// Device supports relay action URLs (`/api/v1/action/relay/<on|off>`),
-  /// available on WS2, WSE, WSX (all firmware versions).
-  final bool hasRelayAction;
-
   /// Device responds to `POST /identify` by blinking/confirming.
   /// Supported on WS2, WSE, WRS, WLL, WMS (PIR) and the Bulb.
   final bool canIdentify;
@@ -171,7 +164,6 @@ enum DeviceType {
     this.hasTimer = false,
     this.hasScheduler = false,
     this.hasHistory = false,
-    this.hasRelayAction = false,
     this.canIdentify = false,
     this.identifyViaTimer = false,
   });

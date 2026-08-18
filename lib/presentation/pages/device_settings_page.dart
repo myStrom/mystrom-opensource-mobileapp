@@ -307,8 +307,11 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
               ),
             ],
 
-            // ---- LCS button action URL (LCS only) ----
-            if (d.type == DeviceType.lcs) ...[
+            // ---- Button action URL (LCS + WS2/WSE/WSX switches) ----
+            if (d.type == DeviceType.lcs ||
+                d.type == DeviceType.ws2 ||
+                d.type == DeviceType.wse ||
+                d.type == DeviceType.wsx) ...[
               const SizedBox(height: 24),
               const Divider(),
               const Text(
@@ -322,34 +325,7 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
                 style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
               const SizedBox(height: 8),
-              _LcsButtonActionTile(device: d),
-            ],
-
-            // ---- Relay action URLs (WS2, WSE, WSX) ----
-            if (d.type.hasRelayAction) ...[
-              const SizedBox(height: 24),
-              const Divider(),
-              const Text(
-                'Relay actions',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'HTTP requests fired when the relay turns ON or OFF. '
-                'Leave blank to disable.',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              const SizedBox(height: 8),
-              _RelayActionTile(
-                key: const Key('relay_action_on_tile'),
-                device: d,
-                relayOn: true,
-              ),
-              _RelayActionTile(
-                key: const Key('relay_action_off_tile'),
-                device: d,
-                relayOn: false,
-              ),
+              _ButtonActionSection(device: d),
             ],
 
             // ---- Identify (WS2, WSE, WRS, WLL, WMS, Bulb) ----
@@ -521,17 +497,59 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
   }
 }
 
-/// Tile showing the current LCS button action URL, with a picker to change it.
-class _LcsButtonActionTile extends StatefulWidget {
-  const _LcsButtonActionTile({required this.device});
+/// Button action section — renders the appropriate tile(s) based on type.
+///
+/// LCS devices have a single button action slot (`/api/v1/action/button`).
+/// WS2/WSE/WSX switches have two slots: ON and OFF
+/// (`/api/v1/action/relay/on` and `/api/v1/action/relay/off`).
+class _ButtonActionSection extends StatefulWidget {
+  const _ButtonActionSection({required this.device});
 
   final DeviceEntity device;
 
   @override
-  State<_LcsButtonActionTile> createState() => _LcsButtonActionTileState();
+  State<_ButtonActionSection> createState() => _ButtonActionSectionState();
 }
 
-class _LcsButtonActionTileState extends State<_LcsButtonActionTile> {
+class _ButtonActionSectionState extends State<_ButtonActionSection> {
+  bool get _isLcs => widget.device.type == DeviceType.lcs;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLcs) {
+      return _SingleButtonActionTile(
+        device: widget.device,
+        key: const Key('lcs_action_tile'),
+      );
+    }
+    return Column(
+      children: [
+        _SwitchSlotActionTile(
+          device: widget.device,
+          slot: 'on',
+          key: const Key('switch_action_on_tile'),
+        ),
+        _SwitchSlotActionTile(
+          device: widget.device,
+          slot: 'off',
+          key: const Key('switch_action_off_tile'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Single button-action tile for LCS devices (one URL slot).
+class _SingleButtonActionTile extends StatefulWidget {
+  const _SingleButtonActionTile({super.key, required this.device});
+
+  final DeviceEntity device;
+
+  @override
+  State<_SingleButtonActionTile> createState() => _SingleButtonActionTileState();
+}
+
+class _SingleButtonActionTileState extends State<_SingleButtonActionTile> {
   String? _currentUrl;
   bool _loading = true;
 
@@ -596,7 +614,6 @@ class _LcsButtonActionTileState extends State<_LcsButtonActionTile> {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      key: const Key('lcs_action_tile'),
       leading: const Icon(Icons.touch_app),
       title: const Text('Button action'),
       subtitle: Text(
@@ -614,28 +631,23 @@ class _LcsButtonActionTileState extends State<_LcsButtonActionTile> {
   }
 }
 
-/// Tile for a single relay action URL (ON or OFF).
-///
-/// WS2 / WSE / WSX devices can fire an HTTP request when the relay changes
-/// state. This tile loads the current URL, lets the user pick a target via
-/// the [ActionUrlPicker] or type a raw URL, and saves/clears it via
-/// `POST /api/v1/action/relay/<on|off>`.
-class _RelayActionTile extends StatefulWidget {
-  const _RelayActionTile({
+/// Switch slot action tile — one of "on" or "off" for WS2/WSE/WSX.
+class _SwitchSlotActionTile extends StatefulWidget {
+  const _SwitchSlotActionTile({
     super.key,
     required this.device,
-    required this.relayOn,
+    required this.slot,
   });
 
   final DeviceEntity device;
-  final bool relayOn;
+  final String slot; // 'on' or 'off'
 
   @override
-  State<_RelayActionTile> createState() => _RelayActionTileState();
+  State<_SwitchSlotActionTile> createState() => _SwitchSlotActionTileState();
 }
 
-class _RelayActionTileState extends State<_RelayActionTile> {
-  String _currentUrl = '';
+class _SwitchSlotActionTileState extends State<_SwitchSlotActionTile> {
+  String? _currentUrl;
   bool _loading = true;
 
   @override
@@ -654,10 +666,10 @@ class _RelayActionTileState extends State<_RelayActionTile> {
       final remote = DeviceRemoteDataSource(
         DeviceHttpClient(token: widget.device.token),
       );
-      final actions = await remote.getRelayActions(ip);
+      final actions = await remote.getSwitchButtonActions(ip);
       if (!mounted) return;
       setState(() {
-        _currentUrl = widget.relayOn ? actions['on'] ?? '' : actions['off'] ?? '';
+        _currentUrl = widget.slot == 'on' ? actions.on : actions.off;
         _loading = false;
       });
     } catch (_) {
@@ -666,98 +678,33 @@ class _RelayActionTileState extends State<_RelayActionTile> {
     }
   }
 
-  Future<void> _edit() async {
+  Future<void> _pick() async {
+    final devices = context.read<DeviceProvider>().devices;
     final ip = widget.device.bestIp;
     if (ip == null) return;
-    final controller = TextEditingController(text: _currentUrl);
-    final devices = context.read<DeviceProvider>().devices;
-    final label = widget.relayOn ? 'ON' : 'OFF';
-
     final url = await showDialog<String>(
       context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          title: Text('Relay $label action'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                key: Key('relay_action_${widget.relayOn ? 'on' : 'off'}_field'),
-                controller: controller,
-                decoration: const InputDecoration(
-                  labelText: 'URL',
-                  hintText: 'http://192.168.1.50/toggle',
-                ),
-                keyboardType: TextInputType.url,
-              ),
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: () async {
-                    final picked = await showDialog<String>(
-                      context: ctx,
-                      builder: (_) => ActionUrlPicker(
-                        devices: devices,
-                        onUrlGenerated: (u) => Navigator.pop(ctx, u),
-                      ),
-                    );
-                    if (picked != null) controller.text = picked;
-                  },
-                  icon: const Icon(Icons.devices, size: 18),
-                  label: const Text('Pick from devices'),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              key: Key(
-                'relay_action_${widget.relayOn ? 'on' : 'off'}_clear',
-              ),
-              onPressed: () => Navigator.pop(ctx, ''),
-              child: const Text('Clear'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, null),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              key: Key(
-                'relay_action_${widget.relayOn ? 'on' : 'off'}_save',
-              ),
-              onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
+      builder: (_) => ActionUrlPicker(
+        devices: devices,
+        onUrlGenerated: (u) => Navigator.pop(context, u),
+      ),
     );
-    if (url == null || !mounted) {
-      controller.dispose();
-      return;
-    }
+    if (url == null || !mounted) return;
     try {
       final remote = DeviceRemoteDataSource(
         DeviceHttpClient(token: widget.device.token),
       );
-      await remote.setRelayAction(ip, on: widget.relayOn, url: url);
-      controller.dispose();
+      if (widget.slot == 'on') {
+        await remote.setSwitchButtonActionOn(ip, url);
+      } else {
+        await remote.setSwitchButtonActionOff(ip, url);
+      }
       if (!mounted) return;
-      // Reload state safely instead of setState (GET /api/v1/action/relay)
-      await _load();
-      if (!mounted) return;
+      setState(() => _currentUrl = url);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            url.isEmpty
-                ? 'Relay $label action cleared'
-                : 'Relay $label action saved: $url',
-          ),
-        ),
+        SnackBar(content: Text('${widget.slot.toUpperCase()} action saved: $url')),
       );
     } catch (e) {
-      controller.dispose();
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
@@ -767,21 +714,24 @@ class _RelayActionTileState extends State<_RelayActionTile> {
 
   @override
   Widget build(BuildContext context) {
-    final label = widget.relayOn ? 'When relay turns ON' : 'When relay turns OFF';
+    final label =
+        widget.slot == 'on' ? 'When relay turns ON' : 'When relay turns OFF';
     return ListTile(
       leading: Icon(
-        widget.relayOn ? Icons.power : Icons.power_settings_new,
+        widget.slot == 'on' ? Icons.power_settings_new : Icons.power_off,
       ),
       title: Text(label),
       subtitle: Text(
         _loading
             ? 'Loading...'
-            : (_currentUrl.isNotEmpty ? _currentUrl : 'Not configured'),
+            : (_currentUrl != null && _currentUrl!.isNotEmpty
+                  ? _currentUrl!
+                  : 'Not configured'),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
       trailing: const Icon(Icons.chevron_right),
-      onTap: _edit,
+      onTap: _pick,
     );
   }
 }
