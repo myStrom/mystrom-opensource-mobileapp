@@ -352,6 +352,22 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
               _PirActionSection(device: d),
             ],
 
+            // ---- PIR light thresholds (WMS) ----
+            // Night/day thresholds classify motion events by ambient light.
+            if (d.type == DeviceType.wms) ...[
+              const SizedBox(height: 24),
+              const Divider(),
+              _PirThresholdsSection(device: d),
+            ],
+
+            // ---- PIR general settings (WMS) ----
+            // Backoff time (cooldown after motion) and LED enable toggle.
+            if (d.type == DeviceType.wms) ...[
+              const SizedBox(height: 24),
+              const Divider(),
+              _PirSettingsSection(device: d),
+            ],
+
             // ---- Identify (WS2, WSE, WRS, WLL, WMS, Bulb) ----
             if (d.type.identifyAvailable) ...[
               const SizedBox(height: 24),
@@ -839,9 +855,9 @@ class _PirActionSectionState extends State<_PirActionSection> {
       await remote.setPirAction(ip, slot, url: url);
       if (!mounted) return;
       setState(() => _urls[slot] = url);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$slot action saved: $url')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('$slot action saved: $url')));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -900,6 +916,311 @@ class _PirSlotActionTile extends StatelessWidget {
       ),
       trailing: const Icon(Icons.chevron_right),
       onTap: onTap,
+    );
+  }
+}
+
+/// PIR light thresholds section — night/day boundaries used by the PIR
+/// to classify motion events by ambient light level.
+///
+/// `GET /api/v1/settings/pir/thresholds` returns `{"night": <uint>, "day": <uint>}`.
+/// `POST` accepts the same JSON; the device rejects (400) when night >= day.
+/// Values share the same scale as the `light` field in `/api/v1/sensors`.
+class _PirThresholdsSection extends StatefulWidget {
+  const _PirThresholdsSection({required this.device});
+
+  final DeviceEntity device;
+
+  @override
+  State<_PirThresholdsSection> createState() => _PirThresholdsSectionState();
+}
+
+class _PirThresholdsSectionState extends State<_PirThresholdsSection> {
+  int? _night;
+  int? _day;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final ip = widget.device.bestIp;
+    if (ip == null) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
+    try {
+      final remote = DeviceRemoteDataSource(
+        DeviceHttpClient(token: widget.device.token),
+      );
+      final t = await remote.getPirThresholds(ip);
+      if (!mounted) return;
+      setState(() {
+        _night = t.night;
+        _day = t.day;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _save() async {
+    final ip = widget.device.bestIp;
+    if (ip == null || _night == null || _day == null) return;
+    if (_night! >= _day!) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Night threshold must be below day')),
+      );
+      return;
+    }
+    try {
+      final remote = DeviceRemoteDataSource(
+        DeviceHttpClient(token: widget.device.token),
+      );
+      final t = await remote.setPirThresholds(
+        ip,
+        night: _night!.clamp(0, 65535),
+        day: _day!.clamp(0, 65535),
+      );
+      if (!mounted) return;
+      setState(() {
+        _night = t.night;
+        _day = t.day;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Thresholds saved')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Save failed: $e')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_error != null) {
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: Card(
+          color: Colors.red.shade100,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Text(_error!),
+          ),
+        ),
+      );
+    }
+    final night = _night ?? 0;
+    final day = _day ?? 0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Light thresholds',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Night and day light boundaries the PIR uses to classify motion '
+          'events. Values share the same scale as the light sensor. '
+          'Night must be below day.',
+          style: TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+        const SizedBox(height: 16),
+        Text('Night: $night'),
+        Slider(
+          key: const Key('pir_threshold_night_slider'),
+          min: 0,
+          max: 65535,
+          divisions: 100,
+          value: night.clamp(0, 65535).toDouble(),
+          label: night.toString(),
+          onChanged: (v) => setState(() => _night = v.round()),
+        ),
+        Text('Day: $day'),
+        Slider(
+          key: const Key('pir_threshold_day_slider'),
+          min: 0,
+          max: 65535,
+          divisions: 100,
+          value: day.clamp(0, 65535).toDouble(),
+          label: day.toString(),
+          onChanged: (v) => setState(() => _day = v.round()),
+        ),
+        const SizedBox(height: 8),
+        FilledButton.icon(
+          key: const Key('pir_threshold_save_button'),
+          onPressed: _save,
+          icon: const Icon(Icons.save),
+          label: const Text('Save thresholds'),
+        ),
+      ],
+    );
+  }
+}
+
+/// PIR general settings section — backoff time and LED enable toggle.
+///
+/// `GET /api/v1/settings/pir` returns `{"backoff_time": <uint>, "led_enable": <bool>}`.
+/// `POST` accepts a partial JSON body; only the included fields are updated.
+/// `backoff_time` is the cooldown in seconds after a motion event (1–84600).
+class _PirSettingsSection extends StatefulWidget {
+  const _PirSettingsSection({required this.device});
+
+  final DeviceEntity device;
+
+  @override
+  State<_PirSettingsSection> createState() => _PirSettingsSectionState();
+}
+
+class _PirSettingsSectionState extends State<_PirSettingsSection> {
+  int? _backoffTime;
+  bool? _ledEnable;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final ip = widget.device.bestIp;
+    if (ip == null) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
+    try {
+      final remote = DeviceRemoteDataSource(
+        DeviceHttpClient(token: widget.device.token),
+      );
+      final s = await remote.getPirSettings(ip);
+      if (!mounted) return;
+      setState(() {
+        _backoffTime = s.backoffTime;
+        _ledEnable = s.ledEnable;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _save() async {
+    final ip = widget.device.bestIp;
+    if (ip == null) return;
+    try {
+      final remote = DeviceRemoteDataSource(
+        DeviceHttpClient(token: widget.device.token),
+      );
+      final s = await remote.setPirSettings(
+        ip,
+        backoffTime: _backoffTime?.clamp(1, 84600),
+        ledEnable: _ledEnable,
+      );
+      if (!mounted) return;
+      setState(() {
+        _backoffTime = s.backoffTime;
+        _ledEnable = s.ledEnable;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('PIR settings saved')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Save failed: $e')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_error != null) {
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: Card(
+          color: Colors.red.shade100,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Text(_error!),
+          ),
+        ),
+      );
+    }
+    final backoff = _backoffTime ?? 60;
+    final led = _ledEnable ?? true;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'PIR settings',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Backoff time is the cooldown in seconds after a motion event '
+          '(1–84600). LED enable controls the status indicator on the device.',
+          style: TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+        const SizedBox(height: 16),
+        Text('Backoff time: $backoff s'),
+        Slider(
+          key: const Key('pir_backoff_slider'),
+          min: 1,
+          max: 84600,
+          divisions: 100,
+          value: backoff.clamp(1, 84600).toDouble(),
+          label: '${backoff}s',
+          onChanged: (v) => setState(() => _backoffTime = v.round()),
+        ),
+        SwitchListTile(
+          key: const Key('pir_led_enable_switch'),
+          contentPadding: EdgeInsets.zero,
+          title: const Text('LED enable'),
+          subtitle: const Text(
+            'Show the status LED when motion is detected.',
+            style: TextStyle(fontSize: 12),
+          ),
+          value: led,
+          onChanged: (v) => setState(() => _ledEnable = v),
+        ),
+        const SizedBox(height: 8),
+        FilledButton.icon(
+          key: const Key('pir_settings_save_button'),
+          onPressed: _save,
+          icon: const Icon(Icons.save),
+          label: const Text('Save PIR settings'),
+        ),
+      ],
     );
   }
 }

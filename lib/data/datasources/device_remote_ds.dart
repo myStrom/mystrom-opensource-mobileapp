@@ -323,6 +323,73 @@ class DeviceRemoteDataSource {
     return PirStateModel.fromSensors(res.data as Map<String, dynamic>);
   }
 
+  /// Get PIR light thresholds: `{"night": <uint>, "day": <uint>}`.
+  /// The PIR uses these to classify motion events as night/twilight/day.
+  /// Values map to the `light` field in /api/v1/sensors (same scale).
+  Future<({int night, int day})> getPirThresholds(String ip) async {
+    final res = await _client.get(ip, ApiEndpoints.pirThresholds);
+    final j = res.data as Map<String, dynamic>;
+    return (
+      night: (j['night'] as num?)?.toInt() ?? 0,
+      day: (j['day'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  /// Set PIR light thresholds via a JSON body.
+  /// The device rejects (400) when night >= day.
+  Future<({int night, int day})> setPirThresholds(
+    String ip, {
+    required int night,
+    required int day,
+  }) async {
+    final res = await _client.post(
+      ip,
+      ApiEndpoints.pirThresholds,
+      body: {'night': night, 'day': day},
+      contentType: 'application/json',
+    );
+    final j = res.data as Map<String, dynamic>;
+    return (
+      night: (j['night'] as num?)?.toInt() ?? night,
+      day: (j['day'] as num?)?.toInt() ?? day,
+    );
+  }
+
+  /// Get PIR general settings: `{"backoff_time": <uint>, "led_enable": <bool>}`.
+  /// `backoff_time` is the cooldown in seconds after a motion event
+  /// (1–84600). `led_enable` controls the status LED.
+  Future<({int backoffTime, bool ledEnable})> getPirSettings(String ip) async {
+    final res = await _client.get(ip, ApiEndpoints.pirSettings);
+    final j = res.data as Map<String, dynamic>;
+    return (
+      backoffTime: (j['backoff_time'] as num?)?.toInt() ?? 60,
+      ledEnable: j['led_enable'] as bool? ?? true,
+    );
+  }
+
+  /// Set PIR general settings via a JSON body. Both fields are optional;
+  /// the device keeps the previous value for any field not included.
+  Future<({int backoffTime, bool ledEnable})> setPirSettings(
+    String ip, {
+    int? backoffTime,
+    bool? ledEnable,
+  }) async {
+    final body = <String, dynamic>{};
+    if (backoffTime != null) body['backoff_time'] = backoffTime;
+    if (ledEnable != null) body['led_enable'] = ledEnable;
+    final res = await _client.post(
+      ip,
+      ApiEndpoints.pirSettings,
+      body: body,
+      contentType: 'application/json',
+    );
+    final j = res.data as Map<String, dynamic>;
+    return (
+      backoffTime: (j['backoff_time'] as num?)?.toInt() ?? backoffTime ?? 60,
+      ledEnable: j['led_enable'] as bool? ?? ledEnable ?? true,
+    );
+  }
+
   Future<void> setPirAction(
     String ip,
     String action, {
@@ -347,7 +414,10 @@ class DeviceRemoteDataSource {
     final res = await _client.get(ip, ApiEndpoints.switchButtonAction);
     final data = res.data;
     if (data is Map<String, dynamic>) {
-      return (on: data['on'] as String? ?? '', off: data['off'] as String? ?? '');
+      return (
+        on: data['on'] as String? ?? '',
+        off: data['off'] as String? ?? '',
+      );
     }
     return (on: '', off: '');
   }

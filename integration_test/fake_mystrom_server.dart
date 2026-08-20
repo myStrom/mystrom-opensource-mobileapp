@@ -38,6 +38,10 @@ class FakeDeviceState {
   dynamic buttonActions; // Button (legacy) / Button-se action map
   String? buttonSeAction; // Button-se per-referer action URL body
   Map<String, String> pirActions = {}; // PIR action URLs per condition
+  int pirThresholdNight = 30; // PIR night light threshold
+  int pirThresholdDay = 100; // PIR day light threshold
+  int pirBackoffTime = 60; // PIR motion cooldown (seconds)
+  bool pirLedEnable = true; // PIR status LED
   List<Map<String, dynamic>> scheduler = const [];
 
   /// Report history records (`/api/v1/history`), newest-first. Each entry
@@ -257,6 +261,63 @@ class FakeMystromServer {
             'humidity': 45.0,
             'battery': {'voltage': 3.0, 'charging': false},
             'charger': {'voltage': 0.0, 'charging': false},
+          });
+          return;
+
+        case '/api/v1/settings/pir/thresholds':
+          // PIR (WMS) light thresholds: GET returns {night, day};
+          // POST accepts JSON {night, day} and rejects night >= day (400).
+          if (req.method == 'POST') {
+            try {
+              final j = jsonDecode(body ?? '{}') as Map<String, dynamic>;
+              final night = (j['night'] as num?)?.toInt();
+              final day = (j['day'] as num?)?.toInt();
+              if (night == null || day == null || night >= day) {
+                req.response
+                  ..statusCode = HttpStatus.badRequest
+                  ..contentLength = 0;
+                await req.response.flush();
+                return;
+              }
+              st.pirThresholdNight = night;
+              st.pirThresholdDay = day;
+            } catch (_) {
+              req.response
+                ..statusCode = HttpStatus.badRequest
+                ..contentLength = 0;
+              await req.response.flush();
+              return;
+            }
+          }
+          await _json(req, {
+            'night': st.pirThresholdNight,
+            'day': st.pirThresholdDay,
+          });
+          return;
+
+        case '/api/v1/settings/pir':
+          // PIR (WMS) general settings: GET returns {backoff_time, led_enable};
+          // POST accepts a partial JSON body — only included fields are updated.
+          if (req.method == 'POST') {
+            try {
+              final j = jsonDecode(body ?? '{}') as Map<String, dynamic>;
+              if (j.containsKey('backoff_time')) {
+                st.pirBackoffTime = (j['backoff_time'] as num).toInt();
+              }
+              if (j.containsKey('led_enable')) {
+                st.pirLedEnable = j['led_enable'] as bool;
+              }
+            } catch (_) {
+              req.response
+                ..statusCode = HttpStatus.badRequest
+                ..contentLength = 0;
+              await req.response.flush();
+              return;
+            }
+          }
+          await _json(req, {
+            'backoff_time': st.pirBackoffTime,
+            'led_enable': st.pirLedEnable,
           });
           return;
 

@@ -519,6 +519,179 @@ void main() {
     await deviceDs.delete(target.mac);
   });
 
+  testWidgets('WMS PIR settings can set night/day light thresholds', (
+    tester,
+  ) async {
+    const mac = 'AA:BB:CC:DD:EE:F5';
+    final dev = await addDevice(
+      mac: mac,
+      name: 'WMS PIR',
+      typeCode: 110,
+      type: 'pir',
+      model: 'WMS',
+    );
+    await touchLastSeen(mac);
+    await pumpApp(tester);
+
+    await tester.tap(find.byKey(const Key('device_card_$mac')));
+    await tester.pumpAndSettle(const Duration(seconds: 1));
+    await tester.tap(find.byKey(const Key('detail_settings_button')));
+    await tester.pumpAndSettle(const Duration(seconds: 1));
+
+    // Scroll down to the thresholds section.
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('pir_threshold_save_button')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    // The thresholds section should be visible with both sliders.
+    expect(find.text('Light thresholds'), findsOneWidget);
+    expect(find.byKey(const Key('pir_threshold_night_slider')), findsOneWidget);
+    expect(find.byKey(const Key('pir_threshold_day_slider')), findsOneWidget);
+
+    // Default fake values are night=30, day=100.
+    expect(find.text('Night: 30'), findsOneWidget);
+    expect(find.text('Day: 100'), findsOneWidget);
+
+    // Drag the night slider right to increase it and the day slider right
+    // to increase it.
+    final nightSlider = find.byKey(const Key('pir_threshold_night_slider'));
+    await tester.scrollUntilVisible(
+      nightSlider,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    // Use a gesture to drag the slider — plain tester.drag can be
+    // swallowed by the parent ListView scroll. Drag night up by a
+    // small amount (not to the max, so it stays below day).
+    final nightLocation = tester.getCenter(nightSlider);
+    final gesture = await tester.startGesture(nightLocation);
+    await gesture.moveBy(const Offset(100, 0));
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    final daySlider = find.byKey(const Key('pir_threshold_day_slider'));
+    await tester.scrollUntilVisible(
+      daySlider,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    final dayLocation = tester.getCenter(daySlider);
+    final gesture2 = await tester.startGesture(dayLocation);
+    await gesture2.moveBy(const Offset(200, 0));
+    await tester.pump();
+    await gesture2.up();
+    await tester.pumpAndSettle();
+
+    // Save.
+    await tester.ensureVisible(
+      find.byKey(const Key('pir_threshold_save_button')),
+    );
+    await tester.tap(find.byKey(const Key('pir_threshold_save_button')));
+    await tester.pumpAndSettle();
+
+    // Verify the fake server received new threshold values.
+    expect(dev.state.pirThresholdNight, greaterThan(30));
+    expect(dev.state.pirThresholdDay, greaterThan(100));
+    expect(dev.state.pirThresholdNight, lessThan(dev.state.pirThresholdDay));
+
+    await tester.tap(find.byKey(const Key('settings_back_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('detail_back_button')));
+    await tester.pumpAndSettle();
+
+    await dev.server.stop();
+    await deviceDs.delete(dev.mac);
+  });
+
+  testWidgets('WMS PIR settings can set backoff time and LED enable', (
+    tester,
+  ) async {
+    const mac = 'AA:BB:CC:DD:EE:F6';
+    final dev = await addDevice(
+      mac: mac,
+      name: 'WMS PIR',
+      typeCode: 110,
+      type: 'pir',
+      model: 'WMS',
+    );
+    await touchLastSeen(mac);
+    await pumpApp(tester);
+
+    await tester.tap(find.byKey(const Key('device_card_$mac')));
+    await tester.pumpAndSettle(const Duration(seconds: 1));
+    await tester.tap(find.byKey(const Key('detail_settings_button')));
+    await tester.pumpAndSettle(const Duration(seconds: 1));
+
+    // Scroll to the PIR settings section.
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('pir_settings_save_button')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    // The section should be visible.
+    expect(find.text('PIR settings'), findsOneWidget);
+    expect(find.byKey(const Key('pir_backoff_slider')), findsOneWidget);
+    expect(find.byKey(const Key('pir_led_enable_switch')), findsOneWidget);
+
+    // Default fake values: backoff=60, led=true.
+    expect(find.text('Backoff time: 60 s'), findsOneWidget);
+
+    // Drag the backoff slider to increase it.
+    final slider = find.byKey(const Key('pir_backoff_slider'));
+    await tester.scrollUntilVisible(
+      slider,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    final sliderCenter = tester.getCenter(slider);
+    final gesture = await tester.startGesture(sliderCenter);
+    await gesture.moveBy(const Offset(100, 0));
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    // Toggle LED off.
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('pir_led_enable_switch')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('pir_led_enable_switch')));
+    await tester.pumpAndSettle();
+
+    // Save.
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('pir_settings_save_button')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('pir_settings_save_button')));
+    await tester.pumpAndSettle();
+
+    // Verify the fake server received the new settings.
+    expect(dev.state.pirBackoffTime, greaterThan(60));
+    expect(dev.state.pirLedEnable, isFalse);
+
+    await tester.tap(find.byKey(const Key('settings_back_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('detail_back_button')));
+    await tester.pumpAndSettle();
+
+    await dev.server.stop();
+    await deviceDs.delete(dev.mac);
+  });
+
   testWidgets('BP2 button settings page has no Lock on/off option', (
     tester,
   ) async {
