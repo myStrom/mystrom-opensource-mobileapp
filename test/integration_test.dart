@@ -26,7 +26,7 @@ Future<void> main() async {
   // Use the known Hive path (same as the Windows app uses via
   // getApplicationSupportDirectory).
   final hivePath = Platform.isWindows
-      ? '${Platform.environment['APPDATA']}\ch.mystrom.local'
+      ? '${Platform.environment['APPDATA']}\\ch.mystrom.local'
       : '/tmp/mystrom_local';
   Hive.init(hivePath);
   Hive.registerAdapter(StoredDeviceAdapter());

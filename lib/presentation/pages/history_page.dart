@@ -26,8 +26,6 @@ class HistoryPage extends StatefulWidget {
 }
 
 class _HistoryPageState extends State<HistoryPage> {
-  static const _pageSize = 64;
-
   late final GetHistory _getHistory;
   late final DeviceRemoteDataSource _remote;
 
@@ -774,7 +772,8 @@ class _Legend extends StatelessWidget {
 DateTime parseHistoryTimestamp(String isoStr) {
   if (isoStr.isEmpty) return DateTime.fromMillisecondsSinceEpoch(0);
   // Strip trailing 'Z' so DateTime.parse doesn't interpret as UTC.
-  final s =
-      isoStr.endsWith('Z') ? isoStr.substring(0, isoStr.length - 1) : isoStr;
+  final s = isoStr.endsWith('Z')
+      ? isoStr.substring(0, isoStr.length - 1)
+      : isoStr;
   return DateTime.parse(s);
 }

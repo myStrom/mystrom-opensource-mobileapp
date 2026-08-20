@@ -302,9 +302,9 @@ class _DeviceStatusCardState extends State<DeviceStatusCard> {
       subtitle = '...';
     } else {
       final parts = <String>[
-        if (d.room != null && d.room!.isNotEmpty) d.room!,
-        if (_statusText != null) _statusText!,
-        if (_sensorText != null) _sensorText!,
+        if (d.room?.isNotEmpty ?? false) d.room!,
+        ?_statusText,
+        ?_sensorText,
       ];
       subtitle = parts.isEmpty ? d.type.displayName : parts.join(' • ');
     }

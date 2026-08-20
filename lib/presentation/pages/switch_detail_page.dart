@@ -104,6 +104,7 @@ class _SwitchDetailPageState extends State<SwitchDetailPage> {
   void _snack(String msg) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 
+  @override
   Widget build(BuildContext context) {
     final relay = _state?.relay ?? false;
     return Scaffold(

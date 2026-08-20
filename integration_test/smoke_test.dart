@@ -117,7 +117,7 @@ void main() {
         id: 'seed-scene',
         name: 'Seed scene',
         iconCode: Icons.home.codePoint,
-        colorValue: Colors.blue.value,
+        colorValue: Colors.blue.toARGB32(),
         actions: const [],
       ),
     );

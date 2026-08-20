@@ -32,7 +32,7 @@ void main() {
       // verify the hour stays exactly as written.
       for (final hour in [0, 6, 12, 18, 22, 23]) {
         final padded = hour.toString().padLeft(2, '0');
-        final dt = parseHistoryTimestamp('2026-08-18T${padded}:00:00Z');
+        final dt = parseHistoryTimestamp('2026-08-18T$padded:00:00Z');
         expect(dt.hour, hour, reason: 'hour $hour was shifted');
       }
     });

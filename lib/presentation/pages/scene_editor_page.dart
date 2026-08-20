@@ -61,7 +61,7 @@ class _SceneEditorPageState extends State<SceneEditorPage> {
     final s = widget.scene;
     _nameController = TextEditingController(text: s?.name ?? 'New scene');
     _iconCode = s?.iconCode ?? Icons.home.codePoint;
-    _colorValue = s?.colorValue ?? Colors.blue.value;
+    _colorValue = s?.colorValue ?? Colors.blue.toARGB32();
     _actions =
         s?.actions
             .map(
@@ -251,7 +251,7 @@ class _SceneEditorPageState extends State<SceneEditorPage> {
       // New scene: any non-default state counts as a change.
       return _nameController.text.trim() != 'New scene' ||
           _iconCode != Icons.home.codePoint ||
-          _colorValue != Colors.blue.value ||
+          _colorValue != Colors.blue.toARGB32() ||
           _actions.isNotEmpty;
     }
     return _nameController.text.trim() != s.name ||
