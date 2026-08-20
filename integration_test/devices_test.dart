@@ -439,6 +439,86 @@ void main() {
     await deviceDs.delete(dev.mac);
   });
 
+  testWidgets('WMS PIR settings shows 6 action slots and saves a URL', (
+    tester,
+  ) async {
+    const mac = 'AA:BB:CC:DD:EE:F3';
+    const targetMac = 'AA:BB:CC:DD:EE:F4';
+    final dev = await addDevice(
+      mac: mac,
+      name: 'WMS PIR',
+      typeCode: 110,
+      type: 'pir',
+      model: 'WMS',
+    );
+    // Add a target switch so the action URL picker has something to pick.
+    final target = await addDevice(
+      mac: targetMac,
+      name: 'Target Switch',
+      typeCode: 106,
+      type: 'ws2',
+      model: 'WS2',
+    );
+    await touchLastSeen(mac);
+    await touchLastSeen(targetMac);
+    await pumpApp(tester);
+
+    await tester.tap(find.byKey(const Key('device_card_$mac')));
+    await tester.pumpAndSettle(const Duration(seconds: 1));
+    await tester.tap(find.byKey(const Key('detail_settings_button')));
+    await tester.pumpAndSettle(const Duration(seconds: 1));
+
+    // All six PIR condition tiles should be visible.
+    expect(find.byKey(const Key('pir_action_generic_tile')), findsOneWidget);
+    expect(find.byKey(const Key('pir_action_night_tile')), findsOneWidget);
+    expect(find.byKey(const Key('pir_action_twilight_tile')), findsOneWidget);
+    expect(find.byKey(const Key('pir_action_day_tile')), findsOneWidget);
+    expect(find.byKey(const Key('pir_action_rise_tile')), findsOneWidget);
+    expect(find.byKey(const Key('pir_action_fall_tile')), findsOneWidget);
+
+    // Initially all slots show "Not configured".
+    expect(find.text('Not configured'), findsNWidgets(6));
+
+    // Tap the generic slot to open the URL picker, pick the target switch
+    // and assign a toggle action.
+    await tester.tap(find.byKey(const Key('pir_action_generic_tile')));
+    await tester.pumpAndSettle();
+
+    // Select the target device from the dropdown.
+    await tester.tap(find.text('Target device'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Target Switch (WS2)').last);
+    await tester.pumpAndSettle();
+
+    // Confirm — generates the URL and saves.
+    await tester.tap(find.text('Assign'));
+    await tester.pumpAndSettle();
+
+    // The generic tile should now show a generated URL (get://.../toggle).
+    final genericTile = find.byKey(const Key('pir_action_generic_tile'));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: genericTile, matching: find.textContaining('toggle')),
+      findsOneWidget,
+    );
+    // The other 5 tiles should still show "Not configured".
+    expect(find.text('Not configured'), findsNWidgets(5));
+
+    // Verify the fake server received the POST.
+    expect(dev.state.pirActions['generic'], isNotEmpty);
+    expect(dev.state.pirActions['generic'], contains('toggle'));
+
+    await tester.tap(find.byKey(const Key('settings_back_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('detail_back_button')));
+    await tester.pumpAndSettle();
+
+    await dev.server.stop();
+    await target.server.stop();
+    await deviceDs.delete(dev.mac);
+    await deviceDs.delete(target.mac);
+  });
+
   testWidgets('BP2 button settings page has no Lock on/off option', (
     tester,
   ) async {

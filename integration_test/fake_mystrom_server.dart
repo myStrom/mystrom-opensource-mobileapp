@@ -37,6 +37,7 @@ class FakeDeviceState {
   String? switchButtonActionOff; // WS2/WSE/WSX OFF slot
   dynamic buttonActions; // Button (legacy) / Button-se action map
   String? buttonSeAction; // Button-se per-referer action URL body
+  Map<String, String> pirActions = {}; // PIR action URLs per condition
   List<Map<String, dynamic>> scheduler = const [];
 
   /// Report history records (`/api/v1/history`), newest-first. Each entry
@@ -143,6 +144,15 @@ class FakeMystromServer {
       // has a mode suffix, so handle it before the fixed-path switch).
       if (path.startsWith('/api/v1/ch_mode/') && req.method == 'POST') {
         st.chMode = path.substring('/api/v1/ch_mode/'.length);
+        await _empty(req);
+        return;
+      }
+
+      // PIR action slots: POST /api/v1/action/pir/<generic|night|...> sets
+      // the URL for that condition via a raw text body.
+      if (path.startsWith('/api/v1/action/pir/') && req.method == 'POST') {
+        final slot = path.substring('/api/v1/action/pir/'.length);
+        st.pirActions[slot] = body ?? '';
         await _empty(req);
         return;
       }
@@ -303,10 +313,22 @@ class FakeMystromServer {
           return;
 
         case '/api/v1/action':
+          // PIR (WMS) action URLs: GET returns {pir: {generic, night, ...}}.
           // Button-se per-referer action URL: POST stores the URL.
           if (req.method == 'POST') {
             st.buttonSeAction = body ?? '';
             await _empty(req);
+          } else if (st.type == 'pir') {
+            await _json(req, {
+              'pir': {
+                'generic': st.pirActions['generic'] ?? '',
+                'night': st.pirActions['night'] ?? '',
+                'twilight': st.pirActions['twilight'] ?? '',
+                'day': st.pirActions['day'] ?? '',
+                'rise': st.pirActions['rise'] ?? '',
+                'fall': st.pirActions['fall'] ?? '',
+              },
+            });
           } else {
             await _json(req, const {});
           }

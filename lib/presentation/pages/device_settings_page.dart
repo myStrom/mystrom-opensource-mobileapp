@@ -332,6 +332,26 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
               _ButtonActionSection(device: d),
             ],
 
+            // ---- PIR action URLs (WMS) ----
+            // The PIR can trigger a URL for each motion/light condition:
+            // generic, night, twilight, day, rise, fall.
+            if (d.type == DeviceType.wms) ...[
+              const SizedBox(height: 24),
+              const Divider(),
+              const Text(
+                'PIR actions',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Choose which device/action the PIR triggers for each '
+                'condition (motion detected at different light levels).',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 8),
+              _PirActionSection(device: d),
+            ],
+
             // ---- Identify (WS2, WSE, WRS, WLL, WMS, Bulb) ----
             if (d.type.identifyAvailable) ...[
               const SizedBox(height: 24),
@@ -740,6 +760,146 @@ class _SwitchSlotActionTileState extends State<_SwitchSlotActionTile> {
       ),
       trailing: const Icon(Icons.chevron_right),
       onTap: _pick,
+    );
+  }
+}
+
+/// PIR action section — renders one tile per PIR condition slot.
+///
+/// WMS (PIR) exposes six action URL slots via
+/// `GET/POST /api/v1/action/pir/<generic|night|twilight|day|rise|fall>`.
+/// Each slot is a raw text URL body, analogous to the switch on/off slots.
+class _PirActionSection extends StatefulWidget {
+  const _PirActionSection({required this.device});
+
+  final DeviceEntity device;
+
+  @override
+  State<_PirActionSection> createState() => _PirActionSectionState();
+}
+
+class _PirActionSectionState extends State<_PirActionSection> {
+  /// Ordered PIR condition slots with human-readable labels.
+  static const _slots = <(String, String, IconData)>[
+    ('generic', 'Generic (any motion)', Icons.sensors),
+    ('night', 'Night (dark)', Icons.nightlight),
+    ('twilight', 'Twilight (dawn/dusk)', Icons.brightness_3),
+    ('day', 'Day (bright)', Icons.wb_sunny),
+    ('rise', 'Motion begins', Icons.notifications_active),
+    ('fall', 'Motion ends', Icons.notifications_off),
+  ];
+
+  Map<String, String> _urls = {};
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final ip = widget.device.bestIp;
+    if (ip == null) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
+    try {
+      final remote = DeviceRemoteDataSource(
+        DeviceHttpClient(token: widget.device.token),
+      );
+      final actions = await remote.getPirActions(ip);
+      if (!mounted) return;
+      setState(() {
+        _urls = actions;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _pick(String slot) async {
+    final devices = context.read<DeviceProvider>().devices;
+    final ip = widget.device.bestIp;
+    if (ip == null) return;
+    final url = await showDialog<String>(
+      context: context,
+      builder: (_) => ActionUrlPicker(
+        devices: devices,
+        onUrlGenerated: (u) => Navigator.pop(context, u),
+      ),
+    );
+    if (url == null || !mounted) return;
+    try {
+      final remote = DeviceRemoteDataSource(
+        DeviceHttpClient(token: widget.device.token),
+      );
+      await remote.setPirAction(ip, slot, url: url);
+      if (!mounted) return;
+      setState(() => _urls[slot] = url);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$slot action saved: $url')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Save failed: $e')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    return Column(
+      children: [
+        for (final (slot, label, icon) in _slots)
+          _PirSlotActionTile(
+            key: Key('pir_action_${slot}_tile'),
+            label: label,
+            icon: icon,
+            url: _urls[slot] ?? '',
+            onTap: () => _pick(slot),
+          ),
+      ],
+    );
+  }
+}
+
+/// A single PIR condition slot tile showing the configured URL (if any).
+class _PirSlotActionTile extends StatelessWidget {
+  const _PirSlotActionTile({
+    super.key,
+    required this.label,
+    required this.icon,
+    required this.url,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final String url;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(label),
+      subtitle: Text(
+        url.isNotEmpty ? url : 'Not configured',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: onTap,
     );
   }
 }

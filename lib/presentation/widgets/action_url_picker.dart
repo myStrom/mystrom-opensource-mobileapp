@@ -109,6 +109,5 @@ class _ActionUrlPickerState extends State<ActionUrlPicker> {
       ramp: _ramp,
     );
     widget.onUrlGenerated(url);
-    Navigator.pop(context);
   }
 }
