@@ -154,6 +154,7 @@ class _ButtonSensorPageState extends State<ButtonSensorPage> {
         title: Text(widget.device.displayName),
         actions: [
           IconButton(
+            key: const Key('button_settings_button'),
             icon: const Icon(Icons.settings),
             tooltip: 'Settings',
             onPressed: () => Navigator.push(

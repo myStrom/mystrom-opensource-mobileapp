@@ -407,6 +407,70 @@ void main() {
     await deviceDs.delete(dev.mac);
   });
 
+  testWidgets('WMS PIR settings page has no Lock on/off option', (
+    tester,
+  ) async {
+    const mac = 'AA:BB:CC:DD:EE:F1';
+    final dev = await addDevice(
+      mac: mac,
+      name: 'WMS PIR',
+      typeCode: 110,
+      type: 'pir',
+      model: 'WMS',
+    );
+    await touchLastSeen(mac);
+    await pumpApp(tester);
+
+    await tester.tap(find.byKey(const Key('device_card_$mac')));
+    await tester.pumpAndSettle(const Duration(seconds: 1));
+    await tester.tap(find.byKey(const Key('detail_settings_button')));
+    await tester.pumpAndSettle(const Duration(seconds: 1));
+
+    // PIR has no on/off state, so "Lock on/off" must not be shown.
+    expect(find.byKey(const Key('settings_lockable_switch')), findsNothing);
+    expect(find.text('Lock on/off'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('settings_back_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('detail_back_button')));
+    await tester.pumpAndSettle();
+
+    await dev.server.stop();
+    await deviceDs.delete(dev.mac);
+  });
+
+  testWidgets('BP2 button settings page has no Lock on/off option', (
+    tester,
+  ) async {
+    const mac = 'AA:BB:CC:DD:EE:F2';
+    final dev = await addDevice(
+      mac: mac,
+      name: 'BP2 Button',
+      typeCode: 118,
+      type: 'button',
+      model: 'BP2',
+    );
+    await touchLastSeen(mac);
+    await pumpApp(tester);
+
+    await tester.tap(find.byKey(const Key('device_card_$mac')));
+    await tester.pumpAndSettle(const Duration(seconds: 1));
+    await tester.tap(find.byKey(const Key('button_settings_button')));
+    await tester.pumpAndSettle(const Duration(seconds: 1));
+
+    // Buttons have no on/off state, so "Lock on/off" must not be shown.
+    expect(find.byKey(const Key('settings_lockable_switch')), findsNothing);
+    expect(find.text('Lock on/off'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('settings_back_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('detail_back_button')));
+    await tester.pumpAndSettle();
+
+    await dev.server.stop();
+    await deviceDs.delete(dev.mac);
+  });
+
   // ---- Timer (bottom sheet) ----
   testWidgets('switch timer sheet sends a timer POST to the device', (
     tester,

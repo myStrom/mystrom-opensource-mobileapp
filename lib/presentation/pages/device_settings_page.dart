@@ -185,18 +185,22 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
               value: _favorite,
               onChanged: (v) => setState(() => _favorite = v),
             ),
-            SwitchListTile(
-              key: const Key('settings_lockable_switch'),
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Lock on/off'),
-              subtitle: const Text(
-                'Disable the on/off toggle (e.g. for a fridge). '
-                'Timers and scheduler are still allowed.',
-                style: TextStyle(fontSize: 12),
+            // Lock on/off is only meaningful for devices with a power toggle.
+            // PIR (WMS) and buttons (BP1/BP2/BM1/Button) have no on/off
+            // state, so the option is hidden there.
+            if (!d.type.isPir && !d.type.isButton)
+              SwitchListTile(
+                key: const Key('settings_lockable_switch'),
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Lock on/off'),
+                subtitle: const Text(
+                  'Disable the on/off toggle (e.g. for a fridge). '
+                  'Timers and scheduler are still allowed.',
+                  style: TextStyle(fontSize: 12),
+                ),
+                value: _lockable,
+                onChanged: (v) => setState(() => _lockable = v),
               ),
-              value: _lockable,
-              onChanged: (v) => setState(() => _lockable = v),
-            ),
 
             // ---- Temperature offset (devices with temperature sensor) ----
             if (d.type.hasTemperature) ...[
@@ -546,7 +550,8 @@ class _SingleButtonActionTile extends StatefulWidget {
   final DeviceEntity device;
 
   @override
-  State<_SingleButtonActionTile> createState() => _SingleButtonActionTileState();
+  State<_SingleButtonActionTile> createState() =>
+      _SingleButtonActionTileState();
 }
 
 class _SingleButtonActionTileState extends State<_SingleButtonActionTile> {
@@ -702,7 +707,9 @@ class _SwitchSlotActionTileState extends State<_SwitchSlotActionTile> {
       if (!mounted) return;
       setState(() => _currentUrl = url);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${widget.slot.toUpperCase()} action saved: $url')),
+        SnackBar(
+          content: Text('${widget.slot.toUpperCase()} action saved: $url'),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
@@ -714,8 +721,9 @@ class _SwitchSlotActionTileState extends State<_SwitchSlotActionTile> {
 
   @override
   Widget build(BuildContext context) {
-    final label =
-        widget.slot == 'on' ? 'When relay turns ON' : 'When relay turns OFF';
+    final label = widget.slot == 'on'
+        ? 'When relay turns ON'
+        : 'When relay turns OFF';
     return ListTile(
       leading: Icon(
         widget.slot == 'on' ? Icons.power_settings_new : Icons.power_off,

@@ -87,6 +87,7 @@ class _PirDetailPageState extends State<PirDetailPage> {
             ),
           ),
           IconButton(
+            key: const Key('detail_settings_button'),
             icon: const Icon(Icons.settings),
             tooltip: 'Settings',
             onPressed: () => Navigator.push(
