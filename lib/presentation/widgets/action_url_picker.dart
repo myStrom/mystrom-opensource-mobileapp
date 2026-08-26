@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../domain/entities/device_entity.dart';
 import '../../domain/usecases/configure_button_action.dart';
+import '../../l10n/app_localizations.dart';
+import '../utils/action_l10n.dart';
 
 /// Dialog/widget that lets the user pick a target device and an action,
 /// then generates the action URL automatically.
@@ -29,6 +31,7 @@ class _ActionUrlPickerState extends State<ActionUrlPicker> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final controllable = widget.devices
         .where(
           (d) =>
@@ -40,19 +43,21 @@ class _ActionUrlPickerState extends State<ActionUrlPicker> {
         .toList();
 
     return AlertDialog(
-      title: const Text('Assign action'),
+      title: Text(l10n.assignAction),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             DropdownButtonFormField<DeviceEntity>(
-              decoration: const InputDecoration(labelText: 'Target device'),
+              decoration: InputDecoration(labelText: l10n.targetDevice),
               initialValue: _target,
               items: controllable
                   .map(
                     (d) => DropdownMenuItem(
                       value: d,
-                      child: Text('${d.displayName} (${d.type.model})'),
+                      child: Text(
+                        l10n.deviceWithModel(d.displayName, d.type.model),
+                      ),
                     ),
                   )
                   .toList(),
@@ -60,26 +65,31 @@ class _ActionUrlPickerState extends State<ActionUrlPicker> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              decoration: const InputDecoration(labelText: 'Action'),
+              decoration: InputDecoration(labelText: l10n.action),
               initialValue: _action,
               items: _actions
-                  .map((a) => DropdownMenuItem(value: a, child: Text(a)))
+                  .map(
+                    (a) => DropdownMenuItem(
+                      value: a,
+                      child: Text(localizedActionLabel(l10n, a)),
+                    ),
+                  )
                   .toList(),
               onChanged: (v) => setState(() => _action = v ?? 'toggle'),
             ),
             if (_action == 'color') ...[
               const SizedBox(height: 16),
               TextField(
-                decoration: const InputDecoration(
-                  labelText: 'Color (H;S;V)',
+                decoration: InputDecoration(
+                  labelText: l10n.colorHsvShort,
                   hintText: '120;100;100',
                 ),
                 onChanged: (v) => _color = v,
               ),
               const SizedBox(height: 8),
               TextField(
-                decoration: const InputDecoration(
-                  labelText: 'Ramp (ms)',
+                decoration: InputDecoration(
+                  labelText: l10n.rampMs,
                   hintText: '500',
                 ),
                 keyboardType: TextInputType.number,
@@ -92,9 +102,9 @@ class _ActionUrlPickerState extends State<ActionUrlPicker> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
-        FilledButton(onPressed: _generate, child: const Text('Assign')),
+        FilledButton(onPressed: _generate, child: Text(l10n.assign)),
       ],
     );
   }

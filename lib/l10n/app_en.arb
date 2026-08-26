@@ -1,0 +1,800 @@
+{
+  "@@locale": "en",
+  "appTitle": "myStrom Local",
+  "add": "Add",
+  "cancel": "Cancel",
+  "save": "Save",
+  "saved": "Saved",
+  "delete": "Delete",
+  "undo": "Undo",
+  "retry": "Retry",
+  "reload": "Reload",
+  "ok": "OK",
+  "yes": "Yes",
+  "no": "No",
+  "enable": "Enable",
+  "enabled": "Enabled",
+  "disabled": "Disabled",
+  "set": "Set",
+  "advanced": "Advanced",
+  "loading": "Loading…",
+  "loadingEllipsis": "…",
+  "noDataDash": "--",
+  "unknown": "unknown",
+  "unknownError": "Unknown error",
+  "noIpAddress": "No IP address",
+  "noIp": "no IP",
+  "online": "online",
+  "offline": "offline",
+  "settingsTooltip": "Settings",
+  "schedulerTooltip": "Scheduler",
+  "identify": "Identify",
+  "identifySignalSent": "Identification signal sent — look for a blink.",
+  "timerSet": "Timer set",
+  "on": "On",
+  "off": "Off",
+  "toggle": "Toggle",
+  "locked": "Locked",
+  "power": "Power",
+  "totalPower": "Total power",
+  "totalEnergy": "Total energy",
+  "color": "Color",
+  "name": "Name",
+  "device": "Device",
+  "action": "Action",
+  "room": "Room",
+  "favorite": "Favorite",
+  "firmware": "Firmware",
+  "connection": "Connection",
+  "connected": "Connected",
+  "disconnected": "Disconnected",
+  "roaming": "Roaming",
+  "handshake": "Handshake",
+  "login": "Login",
+  "failed": "Failed",
+  "notConfigured": "Not configured",
+  "mac": "MAC",
+  "ip": "IP",
+  "type": "Type",
+  "ntp": "NTP",
+  "dns": "DNS",
+  "deviceTypeWifiSwitchCh": "WiFi Switch CH",
+  "deviceTypeWifiSwitchEu": "WiFi Switch EU",
+  "deviceTypeWifiSwitchX": "WiFi Switch X",
+  "deviceTypeWifiStrip": "WiFi Strip",
+  "deviceTypeWifiCube": "WiFi Cube",
+  "deviceTypeWifiPir": "WiFi Motion Sensor",
+  "deviceTypeWifiButtonPlus2": "WiFi Button Plus 2",
+  "deviceTypeWifiButtonPlus1": "WiFi Button Plus 1",
+  "deviceTypeWifiButtonMax": "WiFi Button Max",
+  "deviceTypeWifiBulb": "WiFi Bulb",
+  "deviceTypeWifiSwitchLcs": "WiFi Switch LCS",
+  "deviceTypeWifiButton": "WiFi Button",
+  "deviceTypeUnknown": "Unknown Device",
+  "discoveryCountFound": "{count, plural, =1{1 found} other{{count} found}}",
+  "@discoveryCountFound": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "discoveryListening": "searching…",
+  "sectionScenes": "Scenes",
+  "sectionMyDevices": "My devices",
+  "sectionNewlyDiscovered": "Newly found",
+  "noDevicesInCategory": "No devices in this category",
+  "noToggleableDevicesInRoom": "No switchable devices in \"{room}\"",
+  "@noToggleableDevicesInRoom": {
+    "placeholders": {
+      "room": {
+        "type": "String"
+      }
+    }
+  },
+  "turnAllInRoomOn": "Turn all in \"{room}\" on",
+  "@turnAllInRoomOn": {
+    "placeholders": {
+      "room": {
+        "type": "String"
+      }
+    }
+  },
+  "turnAllInRoomOff": "Turn all in \"{room}\" off",
+  "@turnAllInRoomOff": {
+    "placeholders": {
+      "room": {
+        "type": "String"
+      }
+    }
+  },
+  "bulkToggleResultOn": "{total, plural, =1{{ok}/{total} device switched on} other{{ok}/{total} devices switched on}}",
+  "@bulkToggleResultOn": {
+    "description": "Result of a bulk on command; ok is the number that answered, total the number attempted",
+    "placeholders": {
+      "ok": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "bulkToggleResultOff": "{total, plural, =1{{ok}/{total} device switched off} other{{ok}/{total} devices switched off}}",
+  "@bulkToggleResultOff": {
+    "description": "Result of a bulk off command; ok is the number that answered, total the number attempted",
+    "placeholders": {
+      "ok": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "sceneExecuted": "Scene \"{name}\" executed",
+  "@sceneExecuted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sceneExecuteFailed": "Failed: {list}",
+  "@sceneExecuteFailed": {
+    "placeholders": {
+      "list": {
+        "type": "String"
+      }
+    }
+  },
+  "categoryAll": "All",
+  "categoryFavorite": "Favorite",
+  "roomChipLongPressHint": "Press and hold to turn all in \"{room}\" on/off",
+  "@roomChipLongPressHint": {
+    "placeholders": {
+      "room": {
+        "type": "String"
+      }
+    }
+  },
+  "emptyStateListening": "Searching for devices…\nNo devices found yet.\nMake sure the myStrom devices are on the same WiFi.",
+  "emptyStateStartingDiscovery": "Starting UDP discovery…\nIf your system asked for local network access,\nmake sure you allowed it.",
+  "addDeviceManually": "Add device manually",
+  "powerWatts": "{value} W",
+  "@powerWatts": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "energyKwh": "{value} kWh",
+  "@energyKwh": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "temperatureCelsius": "{value} °C",
+  "@temperatureCelsius": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "percentValue": "{value}%",
+  "@percentValue": {
+    "description": "A bare percentage reading; German locales add a space before the sign",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "sinceBoot": "Since boot",
+  "deviceLockedToggleDisabled": "This device is locked — on/off toggle is disabled.",
+  "addDeviceTitle": "Add Device",
+  "addDevice": "Add device",
+  "tabDiscovered": "Found",
+  "tabSoftAp": "SoftAP",
+  "tabWps": "WPS",
+  "noNewDevicesFound": "No new devices found on the local network.\n\nMake sure your myStrom devices are powered on and connected to the same WiFi. Discovery runs automatically in the background.",
+  "deviceAddedSnack": "{displayName} added",
+  "@deviceAddedSnack": {
+    "placeholders": {
+      "displayName": {
+        "type": "String"
+      }
+    }
+  },
+  "credentialsSentSnackbar": "Credentials sent. The device will reboot and join your WiFi.",
+  "howToEnterApMode": "How to enter AP mode",
+  "apModeInstructionsSubtitle": "Differs by device type — tap to expand",
+  "apModeSwitchesTitle": "Switches (WS2, WSE, WSX, LCS), Strip (WRS), Cube (WLL), Motion Sensor (WMS)",
+  "apModeSwitchResetStep1": "Factory reset: press and hold the \"+\" button for 10–20 s until the LED blinks white.",
+  "apModeSwitchResetStep2": "After the reset the LED blinks red briefly, then the device enters AP mode.",
+  "apModeButtonsTitle": "Buttons (BP2, BM1, WBS/WBP)",
+  "apModeButtonResetStep1": "Factory reset: press and hold any button for 10–20 s until the LED blinks alternating white/red, then release and press once more within 2 s to confirm (LED blinks white).",
+  "apModeButtonResetStep2": "After the reset the device starts in WPS mode (white blink, 2 min). To switch to AP mode, press and hold the button for 3 s — the LED blinks slowly alternating white/red.",
+  "apModeBulbTitle": "Bulb (WRB)",
+  "apModeBulbResetStep1": "Factory reset: cycle power off/on 5 times with ~5 s pauses. After the 5th \"on\" the bulb blinks white 10×.",
+  "apModeBulbResetStep2": "WPS mode runs for 3 min (white blink), then AP mode starts automatically and runs for 5 min.",
+  "apModeLedSignalsTitle": "LED signals (all devices)",
+  "apModeLedFastRed": "Fast red blink — the device is connecting to WiFi.",
+  "apModeLedSlowRed": "Slow red blink — connected, obtaining an IP address.",
+  "apModeLedWhite": "White blink — the device is connecting to the cloud.",
+  "apModeLedGreenSuccess": "3× green — connected successfully.",
+  "apModeLedRedFailure": "3× red — connection failed.",
+  "softApSelectApIntro": "Put your device into AP mode (see instructions below). Then pick it from the list, or connect to its WiFi manually and tap \"I'm already connected\".",
+  "scanForMyStromDevices": "Scan for myStrom devices",
+  "noMyStromApsFound": "No myStrom APs found.\n\n• Make sure the device is in AP mode.\n• Grant Location permission (Settings → Apps → mystrom_local → Permissions).\n• Turn on Location (GPS) in system settings — Android requires it for WiFi scans.\n• If you are already connected to the device AP, tap \"I'm already connected\" below.",
+  "apCandidateSubtitle": "{displayName} • {signal} dBm",
+  "@apCandidateSubtitle": {
+    "placeholders": {
+      "displayName": {
+        "type": "String"
+      },
+      "signal": {
+        "type": "String"
+      }
+    }
+  },
+  "alreadyConnectedToAp": "I'm already connected",
+  "connectedManual": "Connected (manual)",
+  "deviceInfoMacLine": "{type} • MAC {mac}",
+  "@deviceInfoMacLine": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      },
+      "mac": {
+        "type": "String"
+      }
+    }
+  },
+  "scanNetworksIntro": "Scan for the WiFi networks the device can see. This takes up to 5 s.",
+  "deviceApIp": "Device AP IP",
+  "scanWifiNetworks": "Scan WiFi networks",
+  "noNetworksFound": "No networks found. Run the scan again or enter the SSID manually in the next step.",
+  "signalDbm": "{signal} dBm",
+  "@signalDbm": {
+    "placeholders": {
+      "signal": {
+        "type": "String"
+      }
+    }
+  },
+  "enterSsidManually": "Enter SSID manually (hidden network)",
+  "pickNetworkOrSsid": "Pick a network or type the SSID:",
+  "wifiSsid": "WiFi SSID",
+  "wifiSsidHint": "HomeWiFi (or hidden network)",
+  "wifiPassword": "WiFi Password",
+  "deviceNameOptional": "Device name (optional)",
+  "staticIpOptional": "Static IP (optional)",
+  "subnetMaskOptional": "Subnet mask (optional)",
+  "gatewayOptional": "Gateway (optional)",
+  "dnsOptional": "DNS (optional)",
+  "roaming80211r": "Roaming (802.11r)",
+  "sendCredentials": "Send credentials",
+  "sendingCredentials": "Sending credentials…",
+  "credentialsSentSuccess": "Credentials sent successfully.",
+  "deviceRebootingMessage": "The device is rebooting and joining your WiFi. It should appear in the \"Found\" tab within a minute.",
+  "macLabel": "MAC: {mac}",
+  "@macLabel": {
+    "placeholders": {
+      "mac": {
+        "type": "String"
+      }
+    }
+  },
+  "typeLabel": "Type: {displayName}",
+  "@typeLabel": {
+    "placeholders": {
+      "displayName": {
+        "type": "String"
+      }
+    }
+  },
+  "addToDeviceListNow": "Add to device list now",
+  "deviceAddedWillComeOnline": "Device added. It will come online shortly.",
+  "provisionAnotherDevice": "Provision another device",
+  "provisioningFailed": "Provisioning failed",
+  "startOver": "Start over",
+  "wpsIntro": "WPS lets the device join your WiFi by pairing with your router. The procedure to enter WPS mode differs by device type:",
+  "wpsSwitchStep1": "Press and hold the \"+\" button for 3 s — the LED starts blinking white slowly.",
+  "wpsSwitchStep2": "Within 2 min, press the WPS button on your router.",
+  "wpsSwitchStep3": "The device connects automatically; on success the LED blinks 3× green, on failure 3× red.",
+  "wpsResultHint": "3× green blink = success, 3× red blink = failure.",
+  "wpsButtonWpsModeAuto": "After the reset the device starts in WPS mode automatically (white blink, 2 min).",
+  "wpsButtonPressRouter": "Press the WPS button on your router within that window.",
+  "wpsBulbReset": "Factory reset: cycle power off/on 5× with ~5 s pauses. After the 5th \"on\" the bulb blinks white 10×.",
+  "wpsBulbMode": "WPS mode runs for 3 min (white blink). Press WPS on your router during this window.",
+  "triggerWpsOnDevice": "Trigger WPS on device",
+  "wpsTriggerSnackbar": "Make sure the device is in WPS mode, then press WPS on your router.",
+  "nameHintExample": "e.g. Living room floor lamp",
+  "deviceNameSection": "Device name",
+  "customName": "Custom name",
+  "favoriteSubtitle": "Show this device under the \"Favorite\" category on the dashboard.",
+  "lockOnOff": "Lock on/off",
+  "lockOnOffSubtitle": "Disable the on/off toggle (e.g. for a fridge). Timers and scheduler are still allowed.",
+  "temperatureOffset": "Temperature offset",
+  "temperatureOffsetValue": "{sign}{value} °C",
+  "@temperatureOffsetValue": {
+    "placeholders": {
+      "sign": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "tileColor": "Tile color",
+  "tileColorSubtitle": "Helps tell this device apart from others on the dashboard.",
+  "stripChannelMode": "Strip channel mode",
+  "stripChannelModeSubtitle": "Configure colors / channels / cold-warm white",
+  "buttonAction": "Button action",
+  "buttonActionSubtitle": "Choose which device/action the switch triggers when its physical button is pressed.",
+  "pirActions": "Motion sensor actions",
+  "pirActionsSubtitle": "Choose which device/action the motion sensor triggers for each condition (motion detected at different light levels).",
+  "identifySubtitle": "Blink the device so you can tell which one it is.",
+  "deviceInfo": "Device info",
+  "noInfoAvailable": "No info available",
+  "typeSubtitle": "{model} — {displayName}",
+  "@typeSubtitle": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      },
+      "displayName": {
+        "type": "String"
+      }
+    }
+  },
+  "removeDevice": "Remove device",
+  "discardChangesTitle": "Discard changes?",
+  "discardChangesMessage": "You have unsaved changes. Are you sure you want to quit without saving?",
+  "quitWithoutSaving": "Quit without saving",
+  "ipMask": "IP / Mask",
+  "ipMaskValue": "{ip} / {mask}",
+  "@ipMaskValue": {
+    "placeholders": {
+      "ip": {
+        "type": "String"
+      },
+      "mask": {
+        "type": "String"
+      }
+    }
+  },
+  "gatewayDns": "Gateway / DNS",
+  "gatewayDnsValue": "{gw} / {dns}",
+  "@gatewayDnsValue": {
+    "placeholders": {
+      "gw": {
+        "type": "String"
+      },
+      "dns": {
+        "type": "String"
+      }
+    }
+  },
+  "buttonActionSaved": "Button action saved: {url}",
+  "@buttonActionSaved": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "saveFailed": "Save failed: {error}",
+  "@saveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "whenRelayTurnsOn": "When the relay turns ON",
+  "whenRelayTurnsOff": "When the relay turns OFF",
+  "slotActionSaved": "\"{slot}\" action saved: {url}",
+  "@slotActionSaved": {
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      },
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "pirActionGeneric": "Generic (any motion)",
+  "pirActionNight": "Night (dark)",
+  "pirActionTwilight": "Twilight (dawn/dusk)",
+  "pirActionDay": "Day (bright)",
+  "pirActionRise": "Motion begins",
+  "pirActionFall": "Motion ends",
+  "lightThresholds": "Light thresholds",
+  "lightThresholdsSubtitle": "Night and day light boundaries the motion sensor uses to classify motion events. Values share the same scale as the light sensor. Night must be below day.",
+  "nightThresholdBelowDay": "The night threshold must be below the day threshold",
+  "thresholdsSaved": "Thresholds saved",
+  "nightValue": "Night: {value}",
+  "@nightValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "dayValue": "Day: {value}",
+  "@dayValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "saveThresholds": "Save thresholds",
+  "pirSettings": "Motion sensor settings",
+  "pirSettingsSubtitle": "Backoff time is the cooldown in seconds after a motion event (1–86400). \"LED enable\" controls the status indicator on the device.",
+  "pirSettingsSaved": "Motion sensor settings saved",
+  "backoffTimeValue": "Backoff time: {seconds} s",
+  "@backoffTimeValue": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "ledEnable": "LED enable",
+  "ledEnableSubtitle": "Show the status LED when motion is detected.",
+  "savePirSettings": "Save settings",
+  "newScene": "New scene",
+  "editScene": "Edit scene",
+  "sceneName": "Scene name",
+  "icon": "Icon",
+  "actions": "Actions",
+  "noActionsYet": "No actions yet. Add a device action to run with this scene.",
+  "addDeviceAction": "Add device action",
+  "addTimerAction": "Add timer action",
+  "noDevicesAddedYet": "No devices added yet",
+  "sceneDefaultName": "Scene",
+  "sensorNoAction": "Sensor (no action)",
+  "selectDevice": "Select a device",
+  "timerMode": "Timer mode",
+  "durationHms": "Duration: {hh}:{mm}:{ss}",
+  "@durationHms": {
+    "placeholders": {
+      "hh": {
+        "type": "String"
+      },
+      "mm": {
+        "type": "String"
+      },
+      "ss": {
+        "type": "String"
+      }
+    }
+  },
+  "actionOn": "on",
+  "actionOff": "off",
+  "actionToggle": "toggle",
+  "actionTimer": "timer",
+  "actionColor": "color",
+  "sceneIconArriveHome": "Coming Home",
+  "sceneIconGoodNight": "Good Night",
+  "sceneIconMorning": "Good Morning",
+  "sceneIconMovie": "Movie",
+  "sceneIconDinner": "Dinner",
+  "sceneIconAway": "Away",
+  "sceneIconSleep": "Sleep",
+  "sceneIconWeekend": "Weekend",
+  "sceneIconLights": "Lights",
+  "sceneIconPower": "Power",
+  "schedulerTitle": "{displayName} — Scheduler",
+  "@schedulerTitle": {
+    "placeholders": {
+      "displayName": {
+        "type": "String"
+      }
+    }
+  },
+  "saveAll": "Save all",
+  "noSchedulesYet": "No schedules yet",
+  "addNewSchedule": "Add new schedule",
+  "addSchedule": "Add schedule",
+  "hour": "Hour",
+  "minute": "Minute",
+  "setColorOnly": "set (color only)",
+  "colorHsv": "Color (HSV)",
+  "rampMs": "Ramp (ms)",
+  "valuePercent": "Value (%)",
+  "daySun": "Sun",
+  "dayMon": "Mon",
+  "dayTue": "Tue",
+  "dayWed": "Wed",
+  "dayThu": "Thu",
+  "dayFri": "Fri",
+  "daySat": "Sat",
+  "days": "Days",
+  "scheduleSaved": "Schedule saved",
+  "schedulerNotSupported": "Scheduler not supported on this device",
+  "schedulerDeviceList": "Scheduler is only available on WS2, WSE, WRS, WMS, WSX and WLL.",
+  "firmwareVersionUnreadable": "Could not read the firmware version. Requires firmware 5.0.0 or newer.",
+  "firmwareVersionRequired": "Requires firmware 5.0.0 or newer (current: {fw}).",
+  "@firmwareVersionRequired": {
+    "placeholders": {
+      "fw": {
+        "type": "String"
+      }
+    }
+  },
+  "energyHistory": "Energy History",
+  "historyNotSupported": "History not supported.",
+  "failedToLoadHistory": "Failed to load history",
+  "historyDeviceList": "Report history is only available on WS2, WSE and WSX.",
+  "noHistoryDataYet": "No history data available yet.\nReports are stored hourly once the device runs firmware 5.0.0 or newer.",
+  "previousDay": "Previous day",
+  "nextDay": "Next day",
+  "latest": "Latest",
+  "noDataForSelectedDay": "No data for the selected day",
+  "noDataForDate": "No data for {date}",
+  "@noDataForDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "avgPower": "Avg Power",
+  "peakPower": "Peak Power",
+  "intervals": "Intervals",
+  "energyPerIntervalLegend": "Energy per interval (kWh)",
+  "discovery": "Device discovery",
+  "discoveryPlaceholder": "Device discovery runs continuously in the background. Devices show up in the device list as soon as they answer.",
+  "wifiSetup": "WiFi Setup",
+  "wifiSetupPlaceholder": "To move a device to a different WiFi network, use \"Add device\" → \"SoftAP\".",
+  "stripSettings": "Strip Settings",
+  "channelMode": "Channel Mode",
+  "chModeColorsDesc": "WRGB strip — full color control (HSV or WRGB)",
+  "chModeChannelsDesc": "4 independent dimmable channels (e.g. 4 white strips)",
+  "chModeColdWarmDesc": "2 warm-white + 2 cold-white channels (W+R = warm, G+B = cold)",
+  "chModeChangeNote": "Changing the channel mode affects how the strip is controlled. The control page will adapt automatically.",
+  "channelModeSet": "Channel mode set to {mode}",
+  "@channelModeSet": {
+    "placeholders": {
+      "mode": {
+        "type": "String"
+      }
+    }
+  },
+  "ramp": "Ramp",
+  "rampSeconds": "{seconds} s",
+  "@rampSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "tabColor": "Color",
+  "tabWhites": "Whites",
+  "tabWrgb": "WRGB",
+  "whitesColdWarm": "Whites (Cold / Warm)",
+  "whites": "Whites",
+  "whitesInternalConversion": "The device internally converts the color temperature to WRGB values.",
+  "deviceMode": "Device mode: {mode}",
+  "@deviceMode": {
+    "placeholders": {
+      "mode": {
+        "type": "String"
+      }
+    }
+  },
+  "stripMode": "Mode: {mode}",
+  "@stripMode": {
+    "placeholders": {
+      "mode": {
+        "type": "String"
+      }
+    }
+  },
+  "whiteIndex": "White: {index}",
+  "@whiteIndex": {
+    "placeholders": {
+      "index": {
+        "type": "String"
+      }
+    }
+  },
+  "brightnessPercent": "Brightness: {value}%",
+  "@brightnessPercent": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "colorWhite": "White",
+  "colorRed": "Red",
+  "colorGreen": "Green",
+  "colorBlue": "Blue",
+  "channels": "Channels",
+  "channelN": "Channel {n}",
+  "@channelN": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "warm": "Warm",
+  "cold": "Cold",
+  "coldWarm": "Cold / Warm",
+  "labelValue": "{label}: {value}",
+  "@labelValue": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "motion": "Motion",
+  "light": "Light",
+  "temperature": "Temperature",
+  "humidity": "Humidity",
+  "battery": "Battery",
+  "unitLux": "lux",
+  "actionUrls": "Action URLs",
+  "actionUrlsSubtitle": "Tap a scheme to configure which device/action is triggered.",
+  "singlePress": "Press once",
+  "doublePress": "Press twice",
+  "longPress": "Press and hold",
+  "touch": "Touch",
+  "generic": "Generic",
+  "buttonN": "Button {n}",
+  "@buttonN": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "overThreshold": "Above threshold",
+  "underThreshold": "Below threshold",
+  "schemeUrlSaved": "{scheme} → {url}",
+  "@schemeUrlSaved": {
+    "placeholders": {
+      "scheme": {
+        "type": "String"
+      },
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "refererActionUrlSaved": "{referer}/{action} → {url}",
+  "@refererActionUrlSaved": {
+    "placeholders": {
+      "referer": {
+        "type": "String"
+      },
+      "action": {
+        "type": "String"
+      },
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "assignAction": "Assign action",
+  "targetDevice": "Target device",
+  "deviceWithModel": "{displayName} ({model})",
+  "@deviceWithModel": {
+    "placeholders": {
+      "displayName": {
+        "type": "String"
+      },
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "colorHsvShort": "Color (H;S;V)",
+  "assign": "Assign",
+  "macColon": "MAC: {mac}",
+  "@macColon": {
+    "placeholders": {
+      "mac": {
+        "type": "String"
+      }
+    }
+  },
+  "ipColon": "IP: {ip}",
+  "@ipColon": {
+    "placeholders": {
+      "ip": {
+        "type": "String"
+      }
+    }
+  },
+  "noIpForDevice": "No IP address for this device.",
+  "deviceOffline": "Device is offline. Make sure it is powered on and connected.",
+  "couldNotReachDevice": "Could not reach device: {error}",
+  "@couldNotReachDevice": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "statusMotion": "Motion",
+  "statusIdle": "No motion",
+  "statusButton": "Button",
+  "statusOnPercent": "On {value}%",
+  "@statusOnPercent": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "deviceCardSubtitle": "{ip} • {status}",
+  "@deviceCardSubtitle": {
+    "placeholders": {
+      "ip": {
+        "type": "String"
+      },
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "timerNone": "No timer",
+  "hourShort": "h",
+  "minuteShort": "min",
+  "secondShort": "s",
+  "secondsShort": "{seconds} s",
+  "@secondsShort": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "hueValue": "Hue: {value}°",
+  "@hueValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "saturationValue": "Saturation: {value}%",
+  "@saturationValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "featureTimer": "Timer",
+  "featureScheduler": "Scheduler",
+  "featureHistory": "History",
+  "noPowerData": "No power data",
+  "couldNotScanWifi": "Could not scan WiFi: {error}",
+  "@couldNotScanWifi": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "totalEnergyTitleCase": "Total Energy"
+}

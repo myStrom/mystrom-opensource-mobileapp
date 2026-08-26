@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/utils/device_type.dart';
 import '../../domain/entities/device_entity.dart';
+import '../../l10n/app_localizations.dart';
+import '../utils/device_type_l10n.dart';
 
 /// Card showing a device summary. Tappable to open the detail page.
 class DeviceCard extends StatelessWidget {
@@ -18,6 +20,7 @@ class DeviceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final offline = device.isOffline;
 
@@ -30,8 +33,8 @@ class DeviceCard extends StatelessWidget {
         ),
         title: Text(device.displayName),
         subtitle: Text(
-          '${device.type.displayName} • ${device.mac}\n'
-          '${device.bestIp ?? "no IP"} • ${offline ? "offline" : "online"}',
+          '${device.type.localizedName(l10n)} • ${device.mac}\n'
+          '${device.bestIp ?? l10n.noIp} • ${offline ? l10n.offline : l10n.online}',
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),

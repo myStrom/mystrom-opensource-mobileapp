@@ -20,6 +20,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:integration_test/integration_test.dart';
@@ -28,6 +29,7 @@ import 'package:mystrom_local/app.dart';
 import 'package:mystrom_local/core/network/udp_discovery.dart';
 import 'package:mystrom_local/core/utils/device_type.dart';
 import 'package:mystrom_local/data/datasources/device_local_ds.dart';
+import 'package:mystrom_local/l10n/app_localizations.dart';
 import 'package:mystrom_local/data/datasources/scene_local_ds.dart';
 import 'package:mystrom_local/data/models/scene.dart';
 import 'package:mystrom_local/data/models/stored_device.dart';
@@ -108,6 +110,7 @@ void main() {
   Future<void> pumpApp(WidgetTester tester) async {
     await tester.pumpWidget(
       MyApp(
+        locale: const Locale('en'),
         discoveryService: discovery,
         localDataSource: deviceDs,
         sceneDataSource: sceneDs,
@@ -269,6 +272,14 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          locale: const Locale('en'),
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: ListView(
               children: [

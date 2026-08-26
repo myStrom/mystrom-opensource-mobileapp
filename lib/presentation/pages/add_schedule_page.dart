@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/utils/scheduler_time.dart';
 import '../../data/models/scheduler_item.dart';
+import '../../l10n/app_localizations.dart';
+import '../utils/action_l10n.dart';
 import '../widgets/analog_time_picker.dart';
 
 /// Full-page "add schedule entry" editor.
@@ -37,8 +39,6 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
   final _colorCtrl = TextEditingController();
   final _rampCtrl = TextEditingController();
   final _valueCtrl = TextEditingController();
-
-  static const _dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   @override
   void initState() {
@@ -89,6 +89,7 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -96,13 +97,13 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Add schedule'),
+        title: Text(l10n.addSchedule),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
         children: [
           // ---- Action selector ----
-          const Text('Action', style: TextStyle(fontWeight: FontWeight.bold)),
+          Text(l10n.action, style: const TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -115,7 +116,7 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
               ])
                 ChoiceChip(
                   key: Key('schedule_action_chip_$a'),
-                  label: Text(a == 'set' ? 'set (color only)' : a),
+                  label: Text(localizedActionLabel(l10n, a)),
                   selected: _action == a,
                   onSelected: (_) => setState(() => _action = a),
                 ),
@@ -138,7 +139,7 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
           const SizedBox(height: 24),
 
           // ---- Days of week ----
-          const Text('Days', style: TextStyle(fontWeight: FontWeight.bold)),
+          Text(l10n.days, style: const TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 6,
@@ -146,7 +147,7 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
               for (var i = 0; i < 7; i++)
                 FilterChip(
                   key: Key('schedule_day_chip_$i'),
-                  label: Text(_dayLabels[i]),
+                  label: Text(localizedDayLabel(l10n, i)),
                   selected: _days.contains(SchedulerTimeConverter.dayNames[i]),
                   onSelected: (v) {
                     setState(() {
@@ -176,10 +177,10 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
                     child: TextField(
                       key: const Key('schedule_color_field'),
                       controller: _colorCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Color (HSV)',
+                      decoration: InputDecoration(
+                        labelText: l10n.colorHsv,
                         hintText: '360;100;100',
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
                       ),
                     ),
                   ),
@@ -190,9 +191,9 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
                       key: const Key('schedule_ramp_field'),
                       controller: _rampCtrl,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Ramp (ms)',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: l10n.rampMs,
+                        border: const OutlineInputBorder(),
                       ),
                     ),
                   ),
@@ -203,9 +204,9 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
                       key: const Key('schedule_value_field'),
                       controller: _valueCtrl,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Value %',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: l10n.valuePercent,
+                        border: const OutlineInputBorder(),
                       ),
                     ),
                   ),
@@ -219,7 +220,7 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
         key: const Key('schedule_add_button'),
         onPressed: _submit,
         icon: const Icon(Icons.add),
-        label: const Text('Add'),
+        label: Text(l10n.add),
       ),
     );
   }

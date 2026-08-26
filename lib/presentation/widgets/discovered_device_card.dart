@@ -5,6 +5,7 @@ import '../../core/utils/device_type.dart';
 import '../../data/datasources/device_remote_ds.dart';
 import '../../domain/entities/device_entity.dart';
 import '../../domain/usecases/identify_device.dart';
+import '../../l10n/app_localizations.dart';
 
 class DiscoveredDeviceCard extends StatelessWidget {
   const DiscoveredDeviceCard({
@@ -20,12 +21,13 @@ class DiscoveredDeviceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final locked = !device.httpReachable;
     final statusColor = locked ? Colors.orange : Colors.green;
     final subtitleLines = <String>[
-      if (locked) 'Locked',
-      'MAC: ${device.mac}',
-      'IP: ${device.discoveryIp ?? "—"}',
+      if (locked) l10n.locked,
+      l10n.macColon(device.mac),
+      l10n.ipColon(device.discoveryIp ?? l10n.noDataDash),
     ];
 
     return Card(
@@ -52,14 +54,14 @@ class DiscoveredDeviceCard extends StatelessWidget {
                 padding: const EdgeInsets.only(right: 8),
                 child: IconButton(
                   key: Key('identify_${device.mac}'),
-                  tooltip: 'Identify',
+                  tooltip: l10n.identify,
                   icon: const Icon(Icons.bubble_chart),
                   onPressed: () => _identify(context),
                 ),
               ),
             FilledButton.icon(
               icon: const Icon(Icons.add),
-              label: const Text('Add'),
+              label: Text(l10n.add),
               onPressed: onAdd,
             ),
           ],
@@ -71,6 +73,7 @@ class DiscoveredDeviceCard extends StatelessWidget {
   Future<void> _identify(BuildContext context) async {
     final ip = device.discoveryIp ?? device.lastKnownIp;
     if (ip == null) return;
+    final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final remote = DeviceRemoteDataSource(
       DeviceHttpClient(token: device.token),
@@ -79,9 +82,9 @@ class DiscoveredDeviceCard extends StatelessWidget {
     await identify(ip, deviceType: device.type, mac: device.mac);
     if (!messenger.context.mounted) return;
     messenger.showSnackBar(
-      const SnackBar(
-        content: Text('Identification signal sent — look for a blink.'),
-        duration: Duration(seconds: 2),
+      SnackBar(
+        content: Text(l10n.identifySignalSent),
+        duration: const Duration(seconds: 2),
       ),
     );
   }

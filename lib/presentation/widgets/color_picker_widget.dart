@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 /// Simple HSV color picker for strip/bulb control.
 ///
 /// Produces a color string in `H;S;V` format (0-360, 0-100, 0-100).
@@ -56,6 +58,7 @@ class _ColorPickerWidgetState extends State<ColorPickerWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -67,7 +70,7 @@ class _ColorPickerWidgetState extends State<ColorPickerWidget> {
           ),
         ),
         const SizedBox(height: 12),
-        Text('Hue: ${_hue.round()}°'),
+        Text(l10n.hueValue('${_hue.round()}')),
         Slider(
           min: 0,
           max: 360,
@@ -77,7 +80,7 @@ class _ColorPickerWidgetState extends State<ColorPickerWidget> {
             _scheduleEmit();
           },
         ),
-        Text('Saturation: ${_sat.round()}%'),
+        Text(l10n.saturationValue('${_sat.round()}')),
         Slider(
           min: 0,
           max: 100,
@@ -87,7 +90,7 @@ class _ColorPickerWidgetState extends State<ColorPickerWidget> {
             _scheduleEmit();
           },
         ),
-        Text('Brightness: ${_val.round()}%'),
+        Text(l10n.brightnessPercent('${_val.round()}')),
         Slider(
           min: 0,
           max: 100,

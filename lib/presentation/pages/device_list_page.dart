@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../core/network/device_http_client.dart';
 import '../../core/utils/device_type.dart';
 import '../../data/datasources/device_remote_ds.dart';
@@ -8,6 +9,8 @@ import '../../data/models/scene.dart';
 import '../../domain/entities/device_entity.dart';
 import '../providers/device_provider.dart';
 import '../providers/scene_provider.dart';
+import '../utils/category_l10n.dart';
+import '../utils/number_format.dart';
 import '../utils/scene_icons.dart';
 import '../widgets/add_device_dialog.dart';
 import '../widgets/device_status_card.dart';
@@ -40,9 +43,10 @@ class _DeviceListPageState extends State<DeviceListPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('myStrom Local'),
+        title: Text(l10n.appTitle),
         actions: [
           Consumer<DeviceProvider>(
             builder: (context, provider, _) {
@@ -61,7 +65,9 @@ class _DeviceListPageState extends State<DeviceListPage> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        active ? '$count found' : 'listening...',
+                        active
+                            ? l10n.discoveryCountFound(count)
+                            : l10n.discoveryListening,
                         style: const TextStyle(fontSize: 12),
                       ),
                     ],
@@ -125,7 +131,7 @@ class _DeviceListPageState extends State<DeviceListPage> {
           return CustomScrollView(
             slivers: [
               // Scenes section
-              const SliverToBoxAdapter(child: _SectionHeader('Scenes')),
+              SliverToBoxAdapter(child: _SectionHeader(l10n.sectionScenes)),
               SliverToBoxAdapter(
                 child: _ScenesRow(
                   onAddScene: () => _addScene(context),
@@ -152,7 +158,9 @@ class _DeviceListPageState extends State<DeviceListPage> {
                 ),
               // Known devices section
               if (filtered.isNotEmpty) ...[
-                const SliverToBoxAdapter(child: _SectionHeader('My devices')),
+                SliverToBoxAdapter(
+                  child: _SectionHeader(l10n.sectionMyDevices),
+                ),
                 SliverGrid(
                   gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                     maxCrossAxisExtent: 220,
@@ -177,8 +185,8 @@ class _DeviceListPageState extends State<DeviceListPage> {
               // Newly discovered section — only under "All" so it does
               // not leak into Favorite / room filters.
               if (fresh.isNotEmpty && _category == 'All') ...[
-                const SliverToBoxAdapter(
-                  child: _SectionHeader('Newly discovered'),
+                SliverToBoxAdapter(
+                  child: _SectionHeader(l10n.sectionNewlyDiscovered),
                 ),
                 SliverList(
                   delegate: SliverChildBuilderDelegate(
@@ -192,10 +200,10 @@ class _DeviceListPageState extends State<DeviceListPage> {
                 ),
               ],
               if (filtered.isEmpty && fresh.isEmpty)
-                const SliverToBoxAdapter(
+                SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.all(32),
-                    child: Center(child: Text('No devices in this category')),
+                    padding: const EdgeInsets.all(32),
+                    child: Center(child: Text(l10n.noDevicesInCategory)),
                   ),
                 ),
             ],
@@ -248,9 +256,10 @@ class _DeviceListPageState extends State<DeviceListPage> {
         )
         .where((d) => !d.lockable)
         .toList();
+    final l10n = AppLocalizations.of(context);
     if (devices.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No toggleable devices in "$room"')),
+        SnackBar(content: Text(l10n.noToggleableDevicesInRoom(room))),
       );
       return;
     }
@@ -263,12 +272,12 @@ class _DeviceListPageState extends State<DeviceListPage> {
           children: [
             ListTile(
               leading: const Icon(Icons.power_settings_new),
-              title: Text('Turn all in "$room" on'),
+              title: Text(l10n.turnAllInRoomOn(room)),
               onTap: () => Navigator.pop(context, 'on'),
             ),
             ListTile(
               leading: const Icon(Icons.power_off),
-              title: Text('Turn all in "$room" off'),
+              title: Text(l10n.turnAllInRoomOff(room)),
               onTap: () => Navigator.pop(context, 'off'),
             ),
           ],
@@ -302,24 +311,27 @@ class _DeviceListPageState extends State<DeviceListPage> {
       }),
     );
     if (!mounted) return;
-    messenger.showSnackBar(
-      SnackBar(content: Text('$ok/${devices.length} devices $action')),
-    );
+    final l10n = AppLocalizations.of(context);
+    final message = action == 'on'
+        ? l10n.bulkToggleResultOn(ok, devices.length)
+        : l10n.bulkToggleResultOff(ok, devices.length);
+    messenger.showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _runScene(BuildContext context, Scene scene) async {
     final provider = context.read<SceneProvider>();
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     final failed = await provider.runScene(scene);
     if (!context.mounted) return;
     if (failed.isEmpty) {
       messenger.showSnackBar(
-        SnackBar(content: Text('Scene "${scene.name}" executed')),
+        SnackBar(content: Text(l10n.sceneExecuted(scene.name))),
       );
     } else {
       messenger.showSnackBar(
         SnackBar(
-          content: Text('Failed: ${failed.join(", ")}'),
+          content: Text(l10n.sceneExecuteFailed(failed.join(', '))),
           backgroundColor: Colors.red.shade700,
         ),
       );
@@ -475,6 +487,7 @@ class _AddSceneButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Material(
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
       borderRadius: BorderRadius.circular(16),
@@ -494,9 +507,9 @@ class _AddSceneButton extends StatelessWidget {
                 child: const Icon(Icons.add, size: 18),
               ),
               const SizedBox(height: 6),
-              const Text(
-                'Add',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+              Text(
+                l10n.add,
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
               ),
             ],
           ),
@@ -525,6 +538,7 @@ class _CategoryBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return SizedBox(
       height: 44,
       child: ListView.separated(
@@ -537,6 +551,7 @@ class _CategoryBar extends StatelessWidget {
           final isSel = c == selected;
           final theme = Theme.of(context);
           final isRoom = c != 'All' && c != 'Favorite';
+          final displayLabel = categoryDisplayLabel(c, l10n);
           final chip = ChoiceChip(
             label: isRoom
                 ? Row(
@@ -544,10 +559,10 @@ class _CategoryBar extends StatelessWidget {
                     children: [
                       const Icon(Icons.home_outlined, size: 14),
                       const SizedBox(width: 4),
-                      Text(c),
+                      Text(displayLabel),
                     ],
                   )
-                : Text(c),
+                : Text(displayLabel),
             selected: isSel,
             onSelected: (_) => onSelect(c),
             labelStyle: TextStyle(
@@ -557,7 +572,7 @@ class _CategoryBar extends StatelessWidget {
           );
           if (!isRoom || onRoomLongPress == null) return chip;
           return Tooltip(
-            message: 'Long-press to turn all in "$c" on/off',
+            message: l10n.roomChipLongPressHint(c),
             child: GestureDetector(
               onLongPress: () => onRoomLongPress!(c),
               child: chip,
@@ -575,6 +590,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -587,18 +603,14 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             provider.discoveryActive
-                ? 'Listening for devices...\n'
-                      'No devices found yet.\n'
-                      'Make sure myStrom devices are on the same WiFi.'
-                : 'Starting UDP discovery...\n'
-                      'If Windows asked for network access,\n'
-                      'make sure you allowed it.',
+                ? l10n.emptyStateListening
+                : l10n.emptyStateStartingDiscovery,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
           FilledButton.icon(
             icon: const Icon(Icons.add),
-            label: const Text('Add device manually'),
+            label: Text(l10n.addDeviceManually),
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const AddDevicePage()),
@@ -694,14 +706,15 @@ class _PowerSummaryCardState extends State<_PowerSummaryCard> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     String label;
     if (_loading) {
-      label = '...';
+      label = l10n.loadingEllipsis;
     } else if (_total == null) {
-      label = '--';
+      label = l10n.noDataDash;
     } else {
-      label = '${_total!.toStringAsFixed(1)} W';
+      label = l10n.powerWatts(formatDecimal(context, _total!, 1));
     }
     // Total energy from the persisted accumulator (no HTTP needed).
     final totalEnergyWs = widget.devices.fold<double>(
@@ -709,7 +722,7 @@ class _PowerSummaryCardState extends State<_PowerSummaryCard> {
       (sum, d) => sum + d.totalEnergyWs + d.bootEnergyWs,
     );
     final energyLabel = totalEnergyWs > 0
-        ? '${(totalEnergyWs / 3600000).toStringAsFixed(3)} kWh'
+        ? l10n.energyKwh(formatDecimal(context, totalEnergyWs / 3600000, 3))
         : null;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
@@ -725,7 +738,7 @@ class _PowerSummaryCardState extends State<_PowerSummaryCard> {
                   Icon(Icons.bolt, color: theme.colorScheme.primary, size: 20),
                   const SizedBox(width: 8),
                   Text(
-                    'Total power',
+                    l10n.totalPower,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
@@ -751,7 +764,7 @@ class _PowerSummaryCardState extends State<_PowerSummaryCard> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Total energy',
+                      l10n.totalEnergy,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),

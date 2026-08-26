@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart' show NumberFormat;
 
 import '../../core/network/device_http_client.dart';
 import '../../core/utils/device_type.dart';
@@ -7,6 +8,8 @@ import '../../data/models/device_info.dart';
 import '../../data/models/history_record.dart';
 import '../../domain/entities/device_entity.dart';
 import '../../domain/usecases/get_history.dart';
+import '../../l10n/app_localizations.dart';
+import '../utils/number_format.dart';
 
 /// Energy history page — firmware >= 5.0.0 on WS2, WSE, WSX.
 ///
@@ -32,8 +35,9 @@ class _HistoryPageState extends State<HistoryPage> {
   List<HistoryRecord> _allRecords = [];
   bool _loading = true;
   String? _error;
+  bool _noIp = false;
   bool _supported = true;
-  String? _unsupportedReason;
+  String? _unsupportedFw;
 
   /// Available date range (local), derived from records.
   DateTime? _newestDate;
@@ -57,13 +61,14 @@ class _HistoryPageState extends State<HistoryPage> {
     if (ip == null) {
       setState(() {
         _loading = false;
-        _error = 'No IP address';
+        _noIp = true;
       });
       return;
     }
     setState(() {
       _loading = true;
       _error = null;
+      _noIp = false;
     });
     try {
       // 1. Verify firmware supports the history API.
@@ -98,7 +103,7 @@ class _HistoryPageState extends State<HistoryPage> {
         setState(() {
           _loading = false;
           _supported = false;
-          _unsupportedReason = _unsupportedMessage(fw);
+          _unsupportedFw = fw;
         });
         return;
       }
@@ -133,15 +138,15 @@ class _HistoryPageState extends State<HistoryPage> {
     }
   }
 
-  String _unsupportedMessage(String fw) {
+  String _unsupportedMessage(AppLocalizations l10n, String fw) {
     final type = widget.device.type;
     if (!type.hasHistory) {
-      return 'Report history is only available on WS2, WSE and WSX.';
+      return l10n.historyDeviceList;
     }
     if (fw.isEmpty) {
-      return 'Could not read firmware version. Requires firmware >= 5.0.0.';
+      return l10n.firmwareVersionUnreadable;
     }
-    return 'Requires firmware >= 5.0.0 (current: $fw).';
+    return l10n.firmwareVersionRequired(fw);
   }
 
   // ---- Date helpers ----
@@ -208,7 +213,7 @@ class _HistoryPageState extends State<HistoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    final title = 'Energy History';
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -216,20 +221,28 @@ class _HistoryPageState extends State<HistoryPage> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(title),
+        title: Text(l10n.energyHistory),
       ),
-      body: _buildBody(context),
+      body: _buildBody(context, l10n),
     );
   }
 
-  Widget _buildBody(BuildContext context) {
+  Widget _buildBody(BuildContext context, AppLocalizations l10n) {
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
     if (!_supported) {
       return _CenterMessage(
         icon: Icons.history_toggle_off,
-        text: _unsupportedReason ?? 'History not supported.',
+        text: _unsupportedFw != null
+            ? _unsupportedMessage(l10n, _unsupportedFw!)
+            : l10n.historyNotSupported,
+      );
+    }
+    if (_noIp) {
+      return _CenterMessage(
+        icon: Icons.wifi_off,
+        text: l10n.noIpAddress,
       );
     }
     if (_error != null) {
@@ -241,7 +254,7 @@ class _HistoryPageState extends State<HistoryPage> {
             const Icon(Icons.error_outline, size: 48, color: Colors.red),
             const SizedBox(height: 16),
             Text(
-              'Failed to load history',
+              l10n.failedToLoadHistory,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
@@ -250,7 +263,7 @@ class _HistoryPageState extends State<HistoryPage> {
             FilledButton.icon(
               onPressed: _load,
               icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+              label: Text(l10n.retry),
             ),
           ],
         ),
@@ -259,9 +272,7 @@ class _HistoryPageState extends State<HistoryPage> {
     if (_allRecords.isEmpty) {
       return _CenterMessage(
         icon: Icons.inbox,
-        text:
-            'No history data available yet.\n'
-            'Reports are stored hourly once the device is on firmware >= 5.0.0.',
+        text: l10n.noHistoryDataYet,
       );
     }
     return _HistoryContent(
@@ -433,6 +444,7 @@ class _DateBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final canPrev = oldestDate == null || selectedDate.isAfter(oldestDate!);
     final canNext = newestDate == null || selectedDate.isBefore(newestDate!);
     return Wrap(
@@ -444,7 +456,7 @@ class _DateBar extends StatelessWidget {
           key: const Key('history_prev_day'),
           icon: const Icon(Icons.chevron_left),
           onPressed: canPrev ? onPrev : null,
-          tooltip: 'Previous day',
+          tooltip: l10n.previousDay,
         ),
         InkWell(
           key: const Key('history_date_label'),
@@ -474,14 +486,14 @@ class _DateBar extends StatelessWidget {
           key: const Key('history_next_day'),
           icon: const Icon(Icons.chevron_right),
           onPressed: canNext ? onNext : null,
-          tooltip: 'Next day',
+          tooltip: l10n.nextDay,
         ),
         const SizedBox(width: 8),
         TextButton.icon(
           key: const Key('history_today'),
           onPressed: onToday,
           icon: const Icon(Icons.today, size: 18),
-          label: const Text('Latest'),
+          label: Text(l10n.latest),
         ),
       ],
     );
@@ -495,11 +507,12 @@ class _SummaryGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (intervals.isEmpty) {
-      return const Card(
+      return Card(
         child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Center(child: Text('No data for the selected day')),
+          padding: const EdgeInsets.all(16),
+          child: Center(child: Text(l10n.noDataForSelectedDay)),
         ),
       );
     }
@@ -518,24 +531,30 @@ class _SummaryGrid extends StatelessWidget {
           width: _summaryWidth(context),
           height: 64,
           child: _SummaryCard(
-            'Total Energy',
-            '${totalKwh.toStringAsFixed(4)} kWh',
+            l10n.totalEnergyTitleCase,
+            l10n.energyKwh(formatDecimal(context, totalKwh, 4)),
           ),
         ),
         SizedBox(
           width: _summaryWidth(context),
           height: 64,
-          child: _SummaryCard('Avg Power', '${avgPwr.toStringAsFixed(1)} W'),
+          child: _SummaryCard(
+            l10n.avgPower,
+            l10n.powerWatts(formatDecimal(context, avgPwr, 1)),
+          ),
         ),
         SizedBox(
           width: _summaryWidth(context),
           height: 64,
-          child: _SummaryCard('Peak Power', '${maxPwr.toStringAsFixed(1)} W'),
+          child: _SummaryCard(
+            l10n.peakPower,
+            l10n.powerWatts(formatDecimal(context, maxPwr, 1)),
+          ),
         ),
         SizedBox(
           width: _summaryWidth(context),
           height: 64,
-          child: _SummaryCard('Intervals', '${intervals.length}'),
+          child: _SummaryCard(l10n.intervals, '${intervals.length}'),
         ),
       ],
     );
@@ -602,12 +621,13 @@ class _EnergyChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (intervals.isEmpty) {
       return SizedBox(
         height: 260,
         child: Center(
           child: Text(
-            'No data for ${formatDate(selectedDate)}',
+            l10n.noDataForDate(formatDate(selectedDate)),
             style: TextStyle(color: Theme.of(context).hintColor, fontSize: 15),
           ),
         ),
@@ -620,7 +640,10 @@ class _EnergyChart extends StatelessWidget {
           height: 260,
           child: CustomPaint(
             size: Size.infinite,
-            painter: _EnergyChartPainter(intervals: intervals),
+            painter: _EnergyChartPainter(
+              intervals: intervals,
+              axisFormat: decimalFormat(Localizations.localeOf(context), 3),
+            ),
             child: const SizedBox.expand(),
           ),
         ),
@@ -630,8 +653,12 @@ class _EnergyChart extends StatelessWidget {
 }
 
 class _EnergyChartPainter extends CustomPainter {
-  _EnergyChartPainter({required this.intervals});
+  _EnergyChartPainter({required this.intervals, required this.axisFormat});
   final List<_Interval> intervals;
+
+  /// Y-axis labels are painted outside the widget tree, so the painter gets a
+  /// formatter that is already bound to the active locale.
+  final NumberFormat axisFormat;
 
   static const _margin = EdgeInsets.only(
     left: 48,
@@ -671,7 +698,7 @@ class _EnergyChartPainter extends CustomPainter {
       final yVal = maxKwh - maxKwh * g / _gridLines;
       _drawText(
         canvas,
-        yVal.toStringAsFixed(3),
+        axisFormat.format(yVal),
         Offset(_margin.left - 6, y - 7),
         anchor: TextAnchor.end,
         style: const TextStyle(fontSize: 10, color: Color(0xFF888888)),
@@ -720,7 +747,7 @@ class _EnergyChartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _EnergyChartPainter old) =>
-      old.intervals != intervals;
+      old.intervals != intervals || old.axisFormat.locale != axisFormat.locale;
 }
 
 enum TextAnchor { start, middle, end }
@@ -748,12 +775,13 @@ void _drawText(
 class _Legend extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Row(
       children: [
         Container(width: 14, height: 14, color: const Color(0xFF45b40a)),
         const SizedBox(width: 6),
         Text(
-          'Energy per interval (kWh)',
+          l10n.energyPerIntervalLegend,
           style: TextStyle(fontSize: 13, color: Theme.of(context).hintColor),
         ),
       ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/config/app_config.dart';
+import '../../l10n/app_localizations.dart';
 import '../../core/network/device_http_client.dart';
 import '../../core/network/wifi_platform.dart';
 import '../../core/utils/device_type.dart';
@@ -12,6 +13,7 @@ import '../../domain/entities/device_entity.dart';
 import '../../domain/usecases/provision_wifi.dart';
 import '../providers/device_provider.dart';
 import '../providers/provisioning_provider.dart';
+import '../utils/device_type_l10n.dart';
 import '../widgets/add_device_dialog.dart';
 import '../widgets/discovered_device_card.dart';
 
@@ -22,6 +24,7 @@ class AddDevicePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return DefaultTabController(
       length: 3,
       child: Scaffold(
@@ -31,12 +34,12 @@ class AddDevicePage extends StatelessWidget {
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.pop(context),
           ),
-          title: const Text('Add Device'),
-          bottom: const TabBar(
+          title: Text(l10n.addDeviceTitle),
+          bottom: TabBar(
             tabs: [
-              Tab(key: Key('tab_discovered'), text: 'Discovered'),
-              Tab(key: Key('tab_softap'), text: 'SoftAP'),
-              Tab(key: Key('tab_wps'), text: 'WPS'),
+              Tab(key: const Key('tab_discovered'), text: l10n.tabDiscovered),
+              Tab(key: const Key('tab_softap'), text: l10n.tabSoftAp),
+              Tab(key: const Key('tab_wps'), text: l10n.tabWps),
             ],
           ),
         ),
@@ -55,18 +58,17 @@ class _DiscoveredTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Consumer<DeviceProvider>(
       builder: (context, provider, _) {
         final fresh = provider.newDevices;
 
         if (fresh.isEmpty) {
-          return const Center(
+          return Center(
             child: Padding(
-              padding: EdgeInsets.all(32),
+              padding: const EdgeInsets.all(32),
               child: Text(
-                'No new devices found on the local network.\n\n'
-                'Make sure your myStrom devices are powered on and connected '
-                'to the same WiFi. Discovery runs automatically in the background.',
+                l10n.noNewDevicesFound,
                 textAlign: TextAlign.center,
               ),
             ),
@@ -93,9 +95,11 @@ class _DiscoveredTab extends StatelessWidget {
                   );
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('${d.type.displayName} added'),
+                      content: Text(
+                        l10n.deviceAddedSnack(d.type.localizedName(l10n)),
+                      ),
                       action: SnackBarAction(
-                        label: 'Undo',
+                        label: l10n.undo,
                         onPressed: () => provider.removeDevice(d.mac),
                       ),
                     ),
@@ -253,12 +257,9 @@ class _SoftApTabState extends State<_SoftApTab> {
       roaming: _roaming,
     );
     if (ok && context.mounted) {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Credentials sent. The device will reboot and join your WiFi.',
-          ),
-        ),
+        SnackBar(content: Text(l10n.credentialsSentSnackbar)),
       );
     }
   }
@@ -273,65 +274,53 @@ class _ApModeInstructions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return ExpansionTile(
       key: const Key('softap_ap_instructions'),
-      title: const Text('How to enter AP mode'),
-      subtitle: const Text('Differs by device type — tap to expand'),
+      title: Text(l10n.howToEnterApMode),
+      subtitle: Text(l10n.apModeInstructionsSubtitle),
       initiallyExpanded: false,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: DefaultTextStyle(
             style: theme.textTheme.bodyMedium!,
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _InstructionBlock(
-                  title:
-                      'Switches (WS2, WSE, WSX), Strip (WRS), '
-                      'Cube (WLL), PIR (WMS), LCS',
+                  title: l10n.apModeSwitchesTitle,
                   steps: [
-                    'Factory reset: hold the "+" button for 10–20 s until '
-                        'the LED blinks white.',
-                    'After reset the LED blinks red briefly, then the '
-                        'device enters AP mode.',
+                    l10n.apModeSwitchResetStep1,
+                    l10n.apModeSwitchResetStep2,
                   ],
                 ),
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
                 _InstructionBlock(
-                  title: 'Buttons (BP2, BM1, WBS/WBP)',
+                  title: l10n.apModeButtonsTitle,
                   steps: [
-                    'Factory reset: hold any button for 10–20 s until the '
-                        'LED blinks alternating white/red, then release and '
-                        'press once more within 2 s to confirm (LED blinks '
-                        'white).',
-                    'After reset the device starts in WPS mode (white '
-                        'blink, 2 min). To switch to AP mode, hold the '
-                        'button for 3 s — the LED blinks slowly alternating '
-                        'white/red.',
+                    l10n.apModeButtonResetStep1,
+                    l10n.apModeButtonResetStep2,
                   ],
                 ),
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
                 _InstructionBlock(
-                  title: 'Bulb (WRB)',
+                  title: l10n.apModeBulbTitle,
                   steps: [
-                    'Factory reset: cycle power off/on 5 times with ~5 s '
-                        'pauses. After the 5th "on" the bulb blinks white '
-                        '10×.',
-                    'WPS mode runs for 3 min (white blink), then AP mode '
-                        'starts automatically and runs for 5 min.',
+                    l10n.apModeBulbResetStep1,
+                    l10n.apModeBulbResetStep2,
                   ],
                 ),
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
                 _InstructionBlock(
-                  title: 'LED signals (all devices)',
+                  title: l10n.apModeLedSignalsTitle,
                   steps: [
-                    'Fast red blink — connecting to WiFi.',
-                    'Slow red blink — connected, getting IP.',
-                    'White blink — connecting to cloud.',
-                    '3× green — connected successfully.',
-                    '3× red — connection failed.',
+                    l10n.apModeLedFastRed,
+                    l10n.apModeLedSlowRed,
+                    l10n.apModeLedWhite,
+                    l10n.apModeLedGreenSuccess,
+                    l10n.apModeLedRedFailure,
                   ],
                 ),
               ],
@@ -383,21 +372,18 @@ class _SelectApStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        const Text(
-          'Put your device into AP mode (see instructions below), then pick '
-          'it from the list or connect to its WiFi manually and tap '
-          '"I\'m connected".',
-        ),
+        Text(l10n.softApSelectApIntro),
         const SizedBox(height: 8),
         const _ApModeInstructions(),
         const SizedBox(height: 16),
         FilledButton.icon(
           key: const Key('softap_scan_aps'),
           icon: const Icon(Icons.wifi_find),
-          label: const Text('Scan for myStrom devices'),
+          label: Text(l10n.scanForMyStromDevices),
           onPressed: provider.busy ? null : provider.scanForAps,
         ),
         const SizedBox(height: 8),
@@ -407,20 +393,16 @@ class _SelectApStep extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 16),
             child: Text(
-              provider.error!,
+              _provisionErrorMessage(provider, l10n),
               style: const TextStyle(color: Colors.red),
             ),
           )
         else if (provider.apCandidates.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
             child: Text(
-              'No myStrom APs found.\n\n'
-              '• Make sure the device is in AP mode.\n'
-              '• Grant Location permission (Settings → Apps → mystrom_local → Permissions).\n'
-              '• Turn on Location (GPS) in system settings — Android requires it for WiFi scans.\n'
-              '• If you are already connected to the device AP, tap "I\'m already connected" below.',
-              style: TextStyle(color: Colors.grey),
+              l10n.noMyStromApsFound,
+              style: const TextStyle(color: Colors.grey),
             ),
           )
         else
@@ -429,7 +411,12 @@ class _SelectApStep extends StatelessWidget {
               key: Key('ap_candidate_${ap.ssid}'),
               leading: Icon(_iconForType(ap.type), color: Colors.blue),
               title: Text(ap.ssid),
-              subtitle: Text('${ap.type.displayName} • ${ap.signal} dBm'),
+              subtitle: Text(
+                l10n.apCandidateSubtitle(
+                  ap.type.localizedName(l10n),
+                  ap.signal.toString(),
+                ),
+              ),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => provider.selectAp(ap),
             ),
@@ -437,7 +424,7 @@ class _SelectApStep extends StatelessWidget {
         TextButton.icon(
           key: const Key('softap_manual_connected'),
           icon: const Icon(Icons.check),
-          label: const Text("I'm already connected to the device AP"),
+          label: Text(l10n.alreadyConnectedToAp),
           onPressed: onManual,
         ),
       ],
@@ -460,6 +447,7 @@ class _ScanNetworksStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -472,26 +460,26 @@ class _ScanNetworksStep extends StatelessWidget {
               ),
               title: Text(
                 provider.selectedAp!.ssid.isEmpty
-                    ? 'Connected (manual)'
+                    ? l10n.connectedManual
                     : provider.selectedAp!.ssid,
               ),
               subtitle: Text(
                 provider.deviceInfo != null
-                    ? '${provider.deviceInfo!.type.toUpperCase()} • '
-                          'MAC ${provider.deviceInfo!.mac}'
-                    : provider.selectedAp!.type.displayName,
+                    ? l10n.deviceInfoMacLine(
+                        provider.deviceInfo!.type.toUpperCase(),
+                        provider.deviceInfo!.mac,
+                      )
+                    : provider.selectedAp!.type.localizedName(l10n),
               ),
             ),
           ),
         const SizedBox(height: 8),
-        const Text(
-          'Scan for the WiFi networks the device can see. This takes up to 5s.',
-        ),
+        Text(l10n.scanNetworksIntro),
         const SizedBox(height: 16),
         TextField(
           controller: ipController,
-          decoration: const InputDecoration(
-            labelText: 'Device AP IP',
+          decoration: InputDecoration(
+            labelText: l10n.deviceApIp,
             hintText: AppConfig.softApDefaultIp,
           ),
         ),
@@ -499,7 +487,7 @@ class _ScanNetworksStep extends StatelessWidget {
         FilledButton.icon(
           key: const Key('softap_scan_wifi'),
           icon: const Icon(Icons.wifi),
-          label: const Text('Scan WiFi networks'),
+          label: Text(l10n.scanWifiNetworks),
           onPressed: provider.busy
               ? null
               : () async {
@@ -511,12 +499,14 @@ class _ScanNetworksStep extends StatelessWidget {
         if (provider.busy)
           const Center(child: CircularProgressIndicator())
         else if (provider.error != null)
-          Text(provider.error!, style: const TextStyle(color: Colors.red))
+          Text(
+            _provisionErrorMessage(provider, l10n),
+            style: const TextStyle(color: Colors.red),
+          )
         else if (provider.networks.isEmpty)
-          const Text(
-            'No networks found. Tap "Scan" again or enter the SSID manually '
-            'on the next step.',
-            style: TextStyle(color: Colors.grey),
+          Text(
+            l10n.noNetworksFound,
+            style: const TextStyle(color: Colors.grey),
           )
         else
           for (final n in provider.networks)
@@ -524,7 +514,7 @@ class _ScanNetworksStep extends StatelessWidget {
               key: Key('wifi_net_${n.ssid}'),
               leading: Icon(_barsForSignal(n.signal)),
               title: Text(n.ssid),
-              subtitle: Text('${n.signal} dBm'),
+              subtitle: Text(l10n.signalDbm(n.signal.toString())),
               onTap: () {
                 provider.skipToCredentials();
               },
@@ -533,7 +523,7 @@ class _ScanNetworksStep extends StatelessWidget {
         FilledButton.tonalIcon(
           key: const Key('softap_skip_scan'),
           icon: const Icon(Icons.edit),
-          label: const Text('Enter SSID manually (hidden network)'),
+          label: Text(l10n.enterSsidManually),
           onPressed: provider.busy
               ? null
               : () {
@@ -585,11 +575,12 @@ class _CredentialsStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         if (provider.networks.isNotEmpty) ...[
-          const Text('Pick a network or type the SSID:'),
+          Text(l10n.pickNetworkOrSsid),
           const SizedBox(height: 8),
           RadioGroup<WifiNetworkModel>(
             groupValue: selectedNetwork,
@@ -601,7 +592,7 @@ class _CredentialsStep extends StatelessWidget {
                       key: Key('cred_net_${n.ssid}'),
                       leading: Icon(_barsForSignal(n.signal)),
                       title: Text(n.ssid),
-                      subtitle: Text('${n.signal} dBm'),
+                      subtitle: Text(l10n.signalDbm(n.signal.toString())),
                       trailing: Radio<WifiNetworkModel>(value: n),
                       onTap: () => onNetworkSelected(n),
                     ),
@@ -614,75 +605,75 @@ class _CredentialsStep extends StatelessWidget {
         TextField(
           key: const Key('softap_ssid_field'),
           controller: ssidController,
-          decoration: const InputDecoration(
-            labelText: 'WiFi SSID',
-            hintText: 'HomeWiFi (or hidden network)',
+          decoration: InputDecoration(
+            labelText: l10n.wifiSsid,
+            hintText: l10n.wifiSsidHint,
           ),
         ),
         const SizedBox(height: 8),
         TextField(
           key: const Key('softap_password_field'),
           controller: passwordController,
-          decoration: const InputDecoration(labelText: 'WiFi Password'),
+          decoration: InputDecoration(labelText: l10n.wifiPassword),
           obscureText: true,
         ),
         const SizedBox(height: 8),
         ExpansionTile(
           key: const Key('softap_advanced'),
-          title: const Text('Advanced'),
+          title: Text(l10n.advanced),
           initiallyExpanded: showAdvanced,
           onExpansionChanged: (_) => onToggleAdvanced(),
           children: [
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'Device name (optional)',
+              decoration: InputDecoration(
+                labelText: l10n.deviceNameOptional,
               ),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: ipController,
-              decoration: const InputDecoration(
-                labelText: 'Device AP IP',
+              decoration: InputDecoration(
+                labelText: l10n.deviceApIp,
                 hintText: AppConfig.softApDefaultIp,
               ),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: staticIpController,
-              decoration: const InputDecoration(
-                labelText: 'Static IP (optional)',
+              decoration: InputDecoration(
+                labelText: l10n.staticIpOptional,
                 hintText: '192.168.1.50',
               ),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: maskController,
-              decoration: const InputDecoration(
-                labelText: 'Subnet mask (optional)',
+              decoration: InputDecoration(
+                labelText: l10n.subnetMaskOptional,
                 hintText: '255.255.255.0',
               ),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: gwController,
-              decoration: const InputDecoration(
-                labelText: 'Gateway (optional)',
+              decoration: InputDecoration(
+                labelText: l10n.gatewayOptional,
                 hintText: '192.168.1.1',
               ),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: dnsController,
-              decoration: const InputDecoration(
-                labelText: 'DNS (optional)',
+              decoration: InputDecoration(
+                labelText: l10n.dnsOptional,
                 hintText: '8.8.8.8',
               ),
             ),
             const SizedBox(height: 8),
             SwitchListTile(
               key: const Key('softap_roaming_switch'),
-              title: const Text('Roaming (802.11r)'),
+              title: Text(l10n.roaming80211r),
               value: roaming,
               onChanged: onRoamingChanged,
             ),
@@ -692,7 +683,7 @@ class _CredentialsStep extends StatelessWidget {
         FilledButton.icon(
           key: const Key('softap_send_credentials'),
           icon: const Icon(Icons.send),
-          label: const Text('Send credentials'),
+          label: Text(l10n.sendCredentials),
           onPressed: provider.busy ? null : onSend,
         ),
       ],
@@ -706,13 +697,14 @@ class _SendingStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    final l10n = AppLocalizations.of(context);
+    return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          CircularProgressIndicator(),
-          SizedBox(height: 16),
-          Text('Sending credentials…'),
+          const CircularProgressIndicator(),
+          const SizedBox(height: 16),
+          Text(l10n.sendingCredentials),
         ],
       ),
     );
@@ -735,6 +727,7 @@ class _DoneStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final info = provider.deviceInfo;
     final mac = info?.mac ?? '';
     final type = info != null
@@ -748,26 +741,23 @@ class _DoneStep extends StatelessWidget {
         children: [
           const Icon(Icons.check_circle, color: Colors.green, size: 48),
           const SizedBox(height: 8),
-          const Text(
-            'Credentials sent successfully.',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          Text(
+            l10n.credentialsSentSuccess,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'The device is rebooting and joining your WiFi. It should appear '
-            'in the Discovered tab within a minute.',
-          ),
+          Text(l10n.deviceRebootingMessage),
           if (mac.isNotEmpty) ...[
             const SizedBox(height: 16),
-            Text('MAC: $mac'),
-            Text('Type: ${type.displayName}'),
+            Text(l10n.macLabel(mac)),
+            Text(l10n.typeLabel(type.localizedName(l10n))),
           ],
           const SizedBox(height: 24),
           if (mac.isNotEmpty)
             FilledButton.icon(
               key: const Key('softap_add_to_list'),
               icon: const Icon(Icons.add),
-              label: const Text('Add to device list now'),
+              label: Text(l10n.addToDeviceListNow),
               onPressed: () {
                 // Add directly with the info we have; the device will be
                 // updated with its real IP once UDP discovery picks it up.
@@ -776,7 +766,7 @@ class _DoneStep extends StatelessWidget {
                   DeviceEntity(
                     mac: mac,
                     name: nameController.text.isEmpty
-                        ? type.displayName
+                        ? type.localizedName(l10n)
                         : nameController.text,
                     type: type,
                     addedAt: DateTime.now(),
@@ -787,11 +777,7 @@ class _DoneStep extends StatelessWidget {
                 );
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Device added. It will come online shortly.',
-                      ),
-                    ),
+                    SnackBar(content: Text(l10n.deviceAddedWillComeOnline)),
                   );
                 }
                 onRestart();
@@ -801,7 +787,7 @@ class _DoneStep extends StatelessWidget {
           TextButton.icon(
             key: const Key('softap_done_restart'),
             icon: const Icon(Icons.refresh),
-            label: const Text('Provision another device'),
+            label: Text(l10n.provisionAnotherDevice),
             onPressed: onRestart,
           ),
         ],
@@ -819,6 +805,7 @@ class _ErrorStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -826,20 +813,22 @@ class _ErrorStep extends StatelessWidget {
         children: [
           const Icon(Icons.error, color: Colors.red, size: 48),
           const SizedBox(height: 8),
-          const Text(
-            'Provisioning failed',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          Text(
+            l10n.provisioningFailed,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
-            provider.error ?? 'Unknown error',
+            provider.error != null
+                ? _provisionErrorMessage(provider, l10n)
+                : l10n.unknownError,
             style: const TextStyle(color: Colors.red),
           ),
           const SizedBox(height: 24),
           FilledButton.icon(
             key: const Key('softap_error_retry'),
             icon: const Icon(Icons.refresh),
-            label: const Text('Start over'),
+            label: Text(l10n.startOver),
             onPressed: onRetry,
           ),
         ],
@@ -882,68 +871,62 @@ DeviceType _typeFromInfo(String infoType) {
   };
 }
 
+/// Formats [ProvisioningProvider.error] for display (localizes scan failures).
+String _provisionErrorMessage(
+  ProvisioningProvider provider,
+  AppLocalizations l10n,
+) {
+  final err = provider.error!;
+  if (provider.scanWifiError) return l10n.couldNotScanWifi(err);
+  return err;
+}
+
 class _WpsTab extends StatelessWidget {
   const _WpsTab();
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        const Text(
-          'WPS lets the device join your WiFi by pairing with your router. '
-          'The procedure to enter WPS mode differs by device type:',
-        ),
+        Text(l10n.wpsIntro),
         const SizedBox(height: 12),
-        const _InstructionBlock(
-          title:
-              'Switches (WS2, WSE, WSX), Strip (WRS), Cube (WLL), '
-              'PIR (WMS), LCS',
+        _InstructionBlock(
+          title: l10n.apModeSwitchesTitle,
           steps: [
-            'Hold the "+" button for 3 s — the LED starts blinking white '
-                'slowly.',
-            'Within 2 min, press the WPS button on your router.',
-            'The device connects automatically and the LED blinks 3× green '
-                'on success (3× red on failure).',
+            l10n.wpsSwitchStep1,
+            l10n.wpsSwitchStep2,
+            l10n.wpsSwitchStep3,
           ],
         ),
         const SizedBox(height: 12),
-        const _InstructionBlock(
-          title: 'Buttons (BP2, BM1, WBS/WBP)',
+        _InstructionBlock(
+          title: l10n.apModeButtonsTitle,
           steps: [
-            'Factory reset: hold any button for 10–20 s until the LED '
-                'blinks alternating white/red, release and press once more '
-                'within 2 s to confirm (LED blinks white).',
-            'After reset the device starts in WPS mode automatically '
-                '(white blink, 2 min).',
-            'Press the WPS button on your router within that window.',
-            '3× green blink = success, 3× red = failure.',
+            l10n.apModeButtonResetStep1,
+            l10n.wpsButtonWpsModeAuto,
+            l10n.wpsButtonPressRouter,
+            l10n.wpsResultHint,
           ],
         ),
         const SizedBox(height: 12),
-        const _InstructionBlock(
-          title: 'Bulb (WRB)',
+        _InstructionBlock(
+          title: l10n.apModeBulbTitle,
           steps: [
-            'Factory reset: cycle power off/on 5× with ~5 s pauses. After '
-                'the 5th "on" the bulb blinks white 10×.',
-            'WPS mode runs for 3 min (white blink). Press WPS on your '
-                'router during this window.',
-            '3× green blink = success, 3× red = failure.',
+            l10n.wpsBulbReset,
+            l10n.wpsBulbMode,
+            l10n.wpsResultHint,
           ],
         ),
         const SizedBox(height: 24),
         FilledButton.icon(
           key: const Key('wps_trigger'),
           icon: const Icon(Icons.wifi_tethering),
-          label: const Text('Trigger WPS on device'),
+          label: Text(l10n.triggerWpsOnDevice),
           onPressed: () {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Make sure the device is in WPS mode, then press WPS on '
-                  'your router.',
-                ),
-              ),
+              SnackBar(content: Text(l10n.wpsTriggerSnackbar)),
             );
           },
         ),

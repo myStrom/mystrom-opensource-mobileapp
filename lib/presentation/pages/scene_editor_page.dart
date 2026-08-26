@@ -5,8 +5,10 @@ import 'package:uuid/uuid.dart';
 import '../../core/utils/device_type.dart';
 import '../../data/models/scene.dart';
 import '../../domain/entities/device_entity.dart';
+import '../../l10n/app_localizations.dart';
 import '../providers/device_provider.dart';
 import '../providers/scene_provider.dart';
+import '../utils/action_l10n.dart';
 import '../utils/scene_icons.dart';
 
 /// Edit or create a scene: name, icon, color, and a list of device actions.
@@ -27,6 +29,7 @@ class _SceneEditorPageState extends State<SceneEditorPage> {
   late int _iconCode;
   late int _colorValue;
   late List<SceneAction> _actions;
+  bool _defaultNameApplied = false;
 
   static const List<SceneIcon> _icons = kSceneIcons;
 
@@ -49,7 +52,7 @@ class _SceneEditorPageState extends State<SceneEditorPage> {
   void initState() {
     super.initState();
     final s = widget.scene;
-    _nameController = TextEditingController(text: s?.name ?? 'New scene');
+    _nameController = TextEditingController(text: s?.name ?? '');
     _iconCode = s?.iconCode ?? Icons.home.codePoint;
     _colorValue = s?.colorValue ?? Colors.blue.toARGB32();
     _actions =
@@ -67,6 +70,15 @@ class _SceneEditorPageState extends State<SceneEditorPage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_defaultNameApplied && widget.scene == null) {
+      _nameController.text = AppLocalizations.of(context).newScene;
+      _defaultNameApplied = true;
+    }
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     super.dispose();
@@ -74,6 +86,7 @@ class _SceneEditorPageState extends State<SceneEditorPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final isNew = widget.scene == null;
     return PopScope(
       canPop: false,
@@ -88,13 +101,13 @@ class _SceneEditorPageState extends State<SceneEditorPage> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(isNew ? 'New scene' : 'Edit scene'),
+          title: Text(isNew ? l10n.newScene : l10n.editScene),
           actions: [
             if (!isNew)
               IconButton(
                 key: const Key('scene_delete_button'),
                 icon: const Icon(Icons.delete, color: Colors.red),
-                tooltip: 'Delete',
+                tooltip: l10n.delete,
                 onPressed: _delete,
               ),
           ],
@@ -106,15 +119,15 @@ class _SceneEditorPageState extends State<SceneEditorPage> {
             TextField(
               key: const Key('scene_name_field'),
               controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Scene name',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.sceneName,
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 20),
 
             // ---- Icon ----
-            const Text('Icon', style: TextStyle(fontWeight: FontWeight.bold)),
+            Text(l10n.icon, style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 10,
@@ -146,7 +159,7 @@ class _SceneEditorPageState extends State<SceneEditorPage> {
             const SizedBox(height: 20),
 
             // ---- Color ----
-            const Text('Color', style: TextStyle(fontWeight: FontWeight.bold)),
+            Text(l10n.color, style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 10,
@@ -181,9 +194,9 @@ class _SceneEditorPageState extends State<SceneEditorPage> {
             // ---- Actions ----
             Row(
               children: [
-                const Text(
-                  'Actions',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                Text(
+                  l10n.actions,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
                 Text(
@@ -194,12 +207,12 @@ class _SceneEditorPageState extends State<SceneEditorPage> {
             ),
             const SizedBox(height: 8),
             if (_actions.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Center(
                   child: Text(
-                    'No actions yet. Add a device action to run with this scene.',
-                    style: TextStyle(color: Colors.grey),
+                    l10n.noActionsYet,
+                    style: const TextStyle(color: Colors.grey),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -214,14 +227,14 @@ class _SceneEditorPageState extends State<SceneEditorPage> {
             FilledButton.tonalIcon(
               onPressed: _addAction,
               icon: const Icon(Icons.add),
-              label: const Text('Add device action'),
+              label: Text(l10n.addDeviceAction),
             ),
             const SizedBox(height: 8),
             FilledButton.tonalIcon(
               key: const Key('scene_add_timer_action'),
               onPressed: _addTimerAction,
               icon: const Icon(Icons.timer),
-              label: const Text('Add timer action'),
+              label: Text(l10n.addTimerAction),
             ),
           ],
         ),
@@ -229,17 +242,18 @@ class _SceneEditorPageState extends State<SceneEditorPage> {
           key: const Key('scene_save_fab'),
           onPressed: _save,
           icon: const Icon(Icons.save),
-          label: const Text('Save'),
+          label: Text(l10n.save),
         ),
       ),
     );
   }
 
   bool _hasChanges() {
+    final l10n = AppLocalizations.of(context);
     final s = widget.scene;
     if (s == null) {
       // New scene: any non-default state counts as a change.
-      return _nameController.text.trim() != 'New scene' ||
+      return _nameController.text.trim() != l10n.newScene ||
           _iconCode != Icons.home.codePoint ||
           _colorValue != Colors.blue.toARGB32() ||
           _actions.isNotEmpty;
@@ -261,24 +275,23 @@ class _SceneEditorPageState extends State<SceneEditorPage> {
   }
 
   Future<bool> _confirmDiscard(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     return await showDialog<bool>(
           context: context,
           builder: (_) => AlertDialog(
-            title: const Text('Discard changes?'),
-            content: const Text(
-              'You have unsaved changes. Are you sure you want to quit without saving?',
-            ),
+            title: Text(l10n.discardChangesTitle),
+            content: Text(l10n.discardChangesMessage),
             actions: [
               TextButton(
                 key: const Key('scene_discard_cancel'),
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
+                child: Text(l10n.cancel),
               ),
               FilledButton(
                 key: const Key('scene_discard_confirm'),
                 onPressed: () => Navigator.pop(context, true),
                 style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text('Quit without saving'),
+                child: Text(l10n.quitWithoutSaving),
               ),
             ],
           ),
@@ -288,11 +301,12 @@ class _SceneEditorPageState extends State<SceneEditorPage> {
 
   /// Opens a dialog to pick a known device + action type.
   Future<void> _addAction() async {
+    final l10n = AppLocalizations.of(context);
     final devices = context.read<DeviceProvider>().devices;
     if (devices.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('No devices added yet')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.noDevicesAddedYet)),
+      );
       return;
     }
     final result = await showDialog<SceneAction>(
@@ -306,11 +320,12 @@ class _SceneEditorPageState extends State<SceneEditorPage> {
 
   /// Opens a dialog to pick a device + timer mode + duration.
   Future<void> _addTimerAction() async {
+    final l10n = AppLocalizations.of(context);
     final devices = context.read<DeviceProvider>().devices;
     if (devices.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('No devices added yet')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.noDevicesAddedYet)),
+      );
       return;
     }
     final result = await showDialog<SceneAction>(
@@ -323,6 +338,7 @@ class _SceneEditorPageState extends State<SceneEditorPage> {
   }
 
   void _save() {
+    final l10n = AppLocalizations.of(context);
     final provider = context.read<SceneProvider>();
     final name = _nameController.text.trim();
     // For a brand-new scene, generate a unique UUID id so each scene
@@ -331,7 +347,7 @@ class _SceneEditorPageState extends State<SceneEditorPage> {
         widget.scene ??
         Scene(
           id: const Uuid().v4(),
-          name: name.isEmpty ? 'Scene' : name,
+          name: name.isEmpty ? l10n.sceneDefaultName : name,
           iconCode: _iconCode,
           colorValue: _colorValue,
         );
@@ -364,6 +380,7 @@ class _ActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final type = DeviceType.fromCode(action.deviceTypeCode);
     final canToggle =
         type.isSwitch || type.isStrip || type.isDimmer || type.isBulb;
@@ -378,7 +395,7 @@ class _ActionTile extends StatelessWidget {
                 final sel = action.action == a;
                 return ChoiceChip(
                   key: Key('scene_action_chip_$a'),
-                  label: Text(a),
+                  label: Text(localizedActionLabel(l10n, a)),
                   selected: sel,
                   onSelected: (_) => onActionChanged(
                     SceneAction(
@@ -395,7 +412,7 @@ class _ActionTile extends StatelessWidget {
                 );
               }).toList(),
             )
-          : const Text('Sensor (no action)'),
+          : Text(l10n.sensorNoAction),
       trailing: IconButton(
         icon: const Icon(Icons.delete_outline, color: Colors.red),
         onPressed: onRemove,
@@ -428,19 +445,20 @@ class _AddActionDialogState extends State<_AddActionDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return AlertDialog(
-      title: const Text('Add device action'),
+      title: Text(l10n.addDeviceAction),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Device'),
+            Text(l10n.device),
             const SizedBox(height: 8),
             DropdownButton<String>(
               key: const Key('scene_action_device_dropdown'),
               value: _selectedMac,
-              hint: const Text('Select a device'),
+              hint: Text(l10n.selectDevice),
               isExpanded: true,
               items: widget.devices.map((d) {
                 return DropdownMenuItem(
@@ -451,14 +469,14 @@ class _AddActionDialogState extends State<_AddActionDialog> {
               onChanged: (v) => setState(() => _selectedMac = v),
             ),
             const SizedBox(height: 16),
-            const Text('Action'),
+            Text(l10n.action),
             const SizedBox(height: 8),
             Wrap(
               spacing: 6,
               children: ['on', 'off', 'toggle'].map((a) {
                 return ChoiceChip(
                   key: Key('scene_action_chip_$a'),
-                  label: Text(a),
+                  label: Text(localizedActionLabel(l10n, a)),
                   selected: _action == a,
                   onSelected: (_) => setState(() => _action = a),
                 );
@@ -471,7 +489,7 @@ class _AddActionDialogState extends State<_AddActionDialog> {
         TextButton(
           key: const Key('scene_action_cancel'),
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           key: const Key('scene_action_add_button'),
@@ -488,7 +506,7 @@ class _AddActionDialogState extends State<_AddActionDialog> {
               ),
             );
           },
-          child: const Text('Add'),
+          child: Text(l10n.add),
         ),
       ],
     );
@@ -515,19 +533,20 @@ class _AddTimerActionDialogState extends State<_AddTimerActionDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return AlertDialog(
-      title: const Text('Add timer action'),
+      title: Text(l10n.addTimerAction),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Device'),
+            Text(l10n.device),
             const SizedBox(height: 8),
             DropdownButton<String>(
               key: const Key('scene_timer_device_dropdown'),
               value: _selectedMac,
-              hint: const Text('Select a device'),
+              hint: Text(l10n.selectDevice),
               isExpanded: true,
               items: widget.devices.map((d) {
                 return DropdownMenuItem(
@@ -538,14 +557,14 @@ class _AddTimerActionDialogState extends State<_AddTimerActionDialog> {
               onChanged: (v) => setState(() => _selectedMac = v),
             ),
             const SizedBox(height: 16),
-            const Text('Timer mode'),
+            Text(l10n.timerMode),
             const SizedBox(height: 8),
             Wrap(
               spacing: 6,
               children: ['on', 'off', 'toggle'].map((m) {
                 return ChoiceChip(
                   key: Key('scene_timer_mode_chip_$m'),
-                  label: Text(m),
+                  label: Text(localizedActionLabel(l10n, m)),
                   selected: _mode == m,
                   onSelected: (_) => setState(() => _mode = m),
                 );
@@ -553,16 +572,18 @@ class _AddTimerActionDialogState extends State<_AddTimerActionDialog> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Duration: ${_hours.toString().padLeft(2, '0')}:'
-              '${_minutes.toString().padLeft(2, '0')}:'
-              '${_seconds.toString().padLeft(2, '0')}',
+              l10n.durationHms(
+                _hours.toString().padLeft(2, '0'),
+                _minutes.toString().padLeft(2, '0'),
+                _seconds.toString().padLeft(2, '0'),
+              ),
             ),
             const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
                   child: _timeField(
-                    label: 'H',
+                    label: l10n.hourShort,
                     value: _hours,
                     max: 23,
                     onChanged: (v) => setState(() => _hours = v),
@@ -571,7 +592,7 @@ class _AddTimerActionDialogState extends State<_AddTimerActionDialog> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: _timeField(
-                    label: 'M',
+                    label: l10n.minuteShort,
                     value: _minutes,
                     max: 59,
                     onChanged: (v) => setState(() => _minutes = v),
@@ -580,7 +601,7 @@ class _AddTimerActionDialogState extends State<_AddTimerActionDialog> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: _timeField(
-                    label: 'S',
+                    label: l10n.secondShort,
                     value: _seconds,
                     max: 59,
                     onChanged: (v) => setState(() => _seconds = v),
@@ -595,7 +616,7 @@ class _AddTimerActionDialogState extends State<_AddTimerActionDialog> {
         TextButton(
           key: const Key('scene_timer_cancel'),
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           key: const Key('scene_timer_add_button'),
@@ -614,7 +635,7 @@ class _AddTimerActionDialogState extends State<_AddTimerActionDialog> {
               ),
             );
           },
-          child: const Text('Add'),
+          child: Text(l10n.add),
         ),
       ],
     );

@@ -8,6 +8,8 @@ import '../../data/models/strip_state.dart';
 import '../../domain/entities/device_entity.dart';
 import '../../domain/usecases/control_strip.dart';
 import '../../domain/usecases/set_timer.dart';
+import '../../l10n/app_localizations.dart';
+import '../utils/number_format.dart';
 import '../widgets/color_picker_widget.dart';
 import '../widgets/feature_tiles_row.dart';
 import '../widgets/timer_controls.dart';
@@ -36,6 +38,7 @@ class _StripDetailPageState extends State<StripDetailPage>
   late final TabController _tabController;
   StripStateModel? _state;
   bool _loading = true;
+  bool _noIpError = false;
   String? _error;
   int _ramp = 500;
 
@@ -118,13 +121,15 @@ class _StripDetailPageState extends State<StripDetailPage>
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'No IP address';
+        _noIpError = true;
+        _error = null;
       });
       return;
     }
     if (!mounted) return;
     setState(() {
       _loading = true;
+      _noIpError = false;
       _error = null;
     });
     try {
@@ -190,10 +195,13 @@ class _StripDetailPageState extends State<StripDetailPage>
         child: TimerControls(
           onSet: (mode, seconds) async {
             if (widget.device.bestIp == null) return;
+            final timerSetMsg = AppLocalizations.of(context).timerSet;
             try {
               await _timer(widget.device.bestIp!, mode: mode, seconds: seconds);
-              _snack('Timer set');
+              if (!mounted) return;
+              _snack(timerSetMsg);
             } catch (e) {
+              if (!mounted) return;
               _snack(e.toString());
             }
           },
@@ -291,6 +299,7 @@ class _StripDetailPageState extends State<StripDetailPage>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final on = _state?.on ?? false;
     final chMode = _state?.chMode ?? 'colors';
     return Scaffold(
@@ -305,7 +314,7 @@ class _StripDetailPageState extends State<StripDetailPage>
           IconButton(
             key: const Key('strip_settings_button'),
             icon: const Icon(Icons.settings),
-            tooltip: 'Settings',
+            tooltip: l10n.settingsTooltip,
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -321,24 +330,24 @@ class _StripDetailPageState extends State<StripDetailPage>
           padding: const EdgeInsets.all(16),
           children: [
             if (_loading) const Center(child: CircularProgressIndicator()),
-            if (_error != null)
+            if (_noIpError || _error != null)
               Card(
                 color: Colors.red.shade100,
                 child: Padding(
                   padding: const EdgeInsets.all(12),
-                  child: Text(_error!),
+                  child: Text(_noIpError ? l10n.noIpAddress : _error!),
                 ),
               ),
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
-                'Mode: $chMode',
+                l10n.stripMode(chMode),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
             SwitchListTile(
               key: const Key('strip_on_switch'),
-              title: const Text('On'),
+              title: Text(l10n.on),
               value: on,
               onChanged: widget.device.lockable
                   ? null
@@ -364,17 +373,19 @@ class _StripDetailPageState extends State<StripDetailPage>
             ),
             Row(
               children: [
-                const Text('Ramp'),
+                Text(l10n.ramp),
                 Expanded(
                   child: Slider(
                     min: 0,
                     max: 15000,
                     value: _ramp.toDouble().clamp(0, 15000),
-                    label: '${(_ramp / 1000).toStringAsFixed(1)}s',
+                    label: l10n.rampSeconds(
+                      formatDecimal(context, _ramp / 1000, 1),
+                    ),
                     onChanged: (v) => setState(() => _ramp = v.round()),
                   ),
                 ),
-                Text('${(_ramp / 1000).toStringAsFixed(1)}s'),
+                Text(l10n.rampSeconds(formatDecimal(context, _ramp / 1000, 1))),
               ],
             ),
             const SizedBox(height: 16),
@@ -391,10 +402,10 @@ class _StripDetailPageState extends State<StripDetailPage>
             ),
             const SizedBox(height: 16),
             switch (chMode) {
-              'colors' => _buildColorsUI(),
-              'channels' => _buildChannelsUI(),
-              'cold_warm' => _buildColdWarmUI(),
-              _ => _buildColorsUI(),
+              'colors' => _buildColorsUI(l10n),
+              'channels' => _buildChannelsUI(l10n),
+              'cold_warm' => _buildColdWarmUI(l10n),
+              _ => _buildColorsUI(l10n),
             },
           ],
         ),
@@ -403,15 +414,15 @@ class _StripDetailPageState extends State<StripDetailPage>
   }
 
   // ---- colors mode: tabs Color (HSV) + WRGB ----
-  Widget _buildColorsUI() {
+  Widget _buildColorsUI(AppLocalizations l10n) {
     return Column(
       children: [
         TabBar(
           controller: _tabController,
-          tabs: const [
-            Tab(key: Key('strip_tab_color'), text: 'Color'),
-            Tab(key: Key('strip_tab_whites'), text: 'Whites'),
-            Tab(key: Key('strip_tab_wrgb'), text: 'WRGB'),
+          tabs: [
+            Tab(key: const Key('strip_tab_color'), text: l10n.tabColor),
+            Tab(key: const Key('strip_tab_whites'), text: l10n.tabWhites),
+            Tab(key: const Key('strip_tab_wrgb'), text: l10n.tabWrgb),
           ],
         ),
         const SizedBox(height: 8),
@@ -419,17 +430,21 @@ class _StripDetailPageState extends State<StripDetailPage>
           height: 380,
           child: TabBarView(
             controller: _tabController,
-            children: [_buildColorTab(), _buildWhitesTab(), _buildWrgbTab()],
+            children: [
+              _buildColorTab(l10n),
+              _buildWhitesTab(l10n),
+              _buildWrgbTab(l10n),
+            ],
           ),
         ),
       ],
     );
   }
 
-  Widget _buildColorTab() {
+  Widget _buildColorTab(AppLocalizations l10n) {
     return Column(
       children: [
-        const Text('Color (HSV)'),
+        Text(l10n.colorHsv),
         const SizedBox(height: 8),
         ColorPickerWidget(
           key: ValueKey('strip-hsv-${_state?.color}'),
@@ -442,14 +457,14 @@ class _StripDetailPageState extends State<StripDetailPage>
     );
   }
 
-  Widget _buildWrgbTab() {
+  Widget _buildWrgbTab(AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('WRGB'),
+        Text(l10n.tabWrgb),
         const SizedBox(height: 8),
         _wrgbSlider(
-          'White',
+          l10n.colorWhite,
           _wrgbW,
           Colors.amber,
           (v) {
@@ -457,9 +472,10 @@ class _StripDetailPageState extends State<StripDetailPage>
           },
           () => _scheduleWrgbUpdate(),
           sliderKey: const Key('strip_wrgb_white'),
+          l10n: l10n,
         ),
         _wrgbSlider(
-          'Red',
+          l10n.colorRed,
           _wrgbR,
           Colors.red,
           (v) {
@@ -467,9 +483,10 @@ class _StripDetailPageState extends State<StripDetailPage>
           },
           () => _scheduleWrgbUpdate(),
           sliderKey: const Key('strip_wrgb_red'),
+          l10n: l10n,
         ),
         _wrgbSlider(
-          'Green',
+          l10n.colorGreen,
           _wrgbG,
           Colors.green,
           (v) {
@@ -477,9 +494,10 @@ class _StripDetailPageState extends State<StripDetailPage>
           },
           () => _scheduleWrgbUpdate(),
           sliderKey: const Key('strip_wrgb_green'),
+          l10n: l10n,
         ),
         _wrgbSlider(
-          'Blue',
+          l10n.colorBlue,
           _wrgbB,
           Colors.blue,
           (v) {
@@ -487,24 +505,25 @@ class _StripDetailPageState extends State<StripDetailPage>
           },
           () => _scheduleWrgbUpdate(),
           sliderKey: const Key('strip_wrgb_blue'),
+          l10n: l10n,
         ),
       ],
     );
   }
 
   // ---- Whites (mono) tab ----
-  Widget _buildWhitesTab() {
+  Widget _buildWhitesTab(AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Whites'),
+        Text(l10n.whites),
         const SizedBox(height: 4),
-        const Text(
-          'The device internally converts warmth to WRGB values.',
-          style: TextStyle(fontSize: 11, color: Colors.grey),
+        Text(
+          l10n.whitesInternalConversion,
+          style: const TextStyle(fontSize: 11, color: Colors.grey),
         ),
         const SizedBox(height: 8),
-        Text('White: $_whitesIndex'),
+        Text(l10n.whiteIndex('$_whitesIndex')),
         Slider(
           key: const Key('strip_whites_white'),
           min: 1,
@@ -516,7 +535,7 @@ class _StripDetailPageState extends State<StripDetailPage>
           onChangeEnd: (_) => _scheduleWhitesUpdate(),
         ),
         const SizedBox(height: 8),
-        Text('Brightness: $_whitesBrightness%'),
+        Text(l10n.brightnessPercent('$_whitesBrightness')),
         Slider(
           key: const Key('strip_whites_brightness'),
           min: 0,
@@ -531,14 +550,14 @@ class _StripDetailPageState extends State<StripDetailPage>
   }
 
   // ---- channels mode: 4 independent sliders ----
-  Widget _buildChannelsUI() {
+  Widget _buildChannelsUI(AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Channels'),
+        Text(l10n.channels),
         const SizedBox(height: 8),
         _wrgbSlider(
-          'Channel 1',
+          l10n.channelN(1),
           _ch0,
           Colors.amber,
           (v) {
@@ -546,9 +565,10 @@ class _StripDetailPageState extends State<StripDetailPage>
           },
           () => _scheduleChannelsUpdate(),
           sliderKey: const Key('strip_channel_1'),
+          l10n: l10n,
         ),
         _wrgbSlider(
-          'Channel 2',
+          l10n.channelN(2),
           _ch1,
           Colors.red,
           (v) {
@@ -556,9 +576,10 @@ class _StripDetailPageState extends State<StripDetailPage>
           },
           () => _scheduleChannelsUpdate(),
           sliderKey: const Key('strip_channel_2'),
+          l10n: l10n,
         ),
         _wrgbSlider(
-          'Channel 3',
+          l10n.channelN(3),
           _ch2,
           Colors.green,
           (v) {
@@ -566,9 +587,10 @@ class _StripDetailPageState extends State<StripDetailPage>
           },
           () => _scheduleChannelsUpdate(),
           sliderKey: const Key('strip_channel_3'),
+          l10n: l10n,
         ),
         _wrgbSlider(
-          'Channel 4',
+          l10n.channelN(4),
           _ch3,
           Colors.blue,
           (v) {
@@ -576,20 +598,21 @@ class _StripDetailPageState extends State<StripDetailPage>
           },
           () => _scheduleChannelsUpdate(),
           sliderKey: const Key('strip_channel_4'),
+          l10n: l10n,
         ),
       ],
     );
   }
 
   // ---- cold_warm mode: warm + cold sliders ----
-  Widget _buildColdWarmUI() {
+  Widget _buildColdWarmUI(AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Cold / Warm'),
+        Text(l10n.coldWarm),
         const SizedBox(height: 8),
         _wrgbSlider(
-          'Warm',
+          l10n.warm,
           _warmVal,
           Colors.orange,
           (v) {
@@ -597,9 +620,10 @@ class _StripDetailPageState extends State<StripDetailPage>
           },
           () => _scheduleColdWarmUpdate(),
           sliderKey: const Key('strip_warm'),
+          l10n: l10n,
         ),
         _wrgbSlider(
-          'Cold',
+          l10n.cold,
           _coldVal,
           Colors.lightBlue,
           (v) {
@@ -607,6 +631,7 @@ class _StripDetailPageState extends State<StripDetailPage>
           },
           () => _scheduleColdWarmUpdate(),
           sliderKey: const Key('strip_cold'),
+          l10n: l10n,
         ),
       ],
     );
@@ -619,6 +644,7 @@ class _StripDetailPageState extends State<StripDetailPage>
     ValueChanged<double> onChanged,
     VoidCallback onChangeEnd, {
     Key? sliderKey,
+    required AppLocalizations l10n,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -627,7 +653,7 @@ class _StripDetailPageState extends State<StripDetailPage>
           children: [
             Icon(Icons.circle, color: color, size: 16),
             const SizedBox(width: 8),
-            Text('$label: $value'),
+            Text(l10n.labelValue(label, '$value')),
           ],
         ),
         Slider(

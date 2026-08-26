@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/device_entity.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Dialog shown when adding a device. Lets the user override the default
 /// name and pick a custom color for the device card.
@@ -54,8 +55,9 @@ class _AddDeviceDialogState extends State<AddDeviceDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return AlertDialog(
-      title: const Text('Add device'),
+      title: Text(l10n.addDevice),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -63,14 +65,14 @@ class _AddDeviceDialogState extends State<AddDeviceDialog> {
           children: [
             TextField(
               controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Name',
-                hintText: 'e.g. Living room lamp',
+              decoration: InputDecoration(
+                labelText: l10n.name,
+                hintText: l10n.nameHintExample,
               ),
               autofocus: true,
             ),
             const SizedBox(height: 16),
-            const Text('Color', style: TextStyle(fontSize: 12)),
+            Text(l10n.color, style: const TextStyle(fontSize: 12)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -109,7 +111,7 @@ class _AddDeviceDialogState extends State<AddDeviceDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: () {
@@ -122,7 +124,7 @@ class _AddDeviceDialogState extends State<AddDeviceDialog> {
               ),
             );
           },
-          child: const Text('Add'),
+          child: Text(l10n.add),
         ),
       ],
     );

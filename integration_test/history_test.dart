@@ -126,6 +126,7 @@ void main() {
   Future<void> pumpApp(WidgetTester tester) async {
     await tester.pumpWidget(
       MyApp(
+        locale: const Locale('en'),
         discoveryService: discovery,
         localDataSource: deviceDs,
         sceneDataSource: sceneDs,

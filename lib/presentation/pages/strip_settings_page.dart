@@ -4,6 +4,7 @@ import '../../core/network/device_http_client.dart';
 import '../../data/datasources/device_remote_ds.dart';
 import '../../domain/entities/device_entity.dart';
 import '../../domain/usecases/control_strip.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Strip settings page — configure the channel mode (colors / channels / cold_warm).
 ///
@@ -23,13 +24,10 @@ class _StripSettingsPageState extends State<StripSettingsPage> {
   late final ControlStrip _control;
   String? _chMode;
   bool _loading = true;
+  bool _noIpError = false;
   String? _error;
 
-  static const _modeDescriptions = {
-    'colors': 'WRGB strip — full color control (HSV or WRGB)',
-    'channels': '4 independent dimmable channels (e.g. 4 white strips)',
-    'cold_warm': '2 warm + 2 cold white channels (W+R = warm, G+B = cold)',
-  };
+  static const _modes = ['colors', 'channels', 'cold_warm'];
 
   @override
   void initState() {
@@ -40,11 +38,21 @@ class _StripSettingsPageState extends State<StripSettingsPage> {
     _loadChMode();
   }
 
+  String _modeDescription(AppLocalizations l10n, String mode) {
+    return switch (mode) {
+      'colors' => l10n.chModeColorsDesc,
+      'channels' => l10n.chModeChannelsDesc,
+      'cold_warm' => l10n.chModeColdWarmDesc,
+      _ => '',
+    };
+  }
+
   Future<void> _loadChMode() async {
     if (widget.device.bestIp == null) {
       setState(() {
         _loading = false;
-        _error = 'No IP address';
+        _noIpError = true;
+        _error = null;
       });
       return;
     }
@@ -68,9 +76,10 @@ class _StripSettingsPageState extends State<StripSettingsPage> {
       await _control.setChMode(widget.device.bestIp!, chMode: mode);
       setState(() => _chMode = mode);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Channel mode set to: $mode')));
+        final l10n = AppLocalizations.of(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.channelModeSet(mode))),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -83,6 +92,7 @@ class _StripSettingsPageState extends State<StripSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -90,47 +100,49 @@ class _StripSettingsPageState extends State<StripSettingsPage> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Strip Settings'),
+        title: Text(l10n.stripSettings),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           if (_loading) const Center(child: CircularProgressIndicator()),
-          if (_error != null)
+          if (_noIpError || _error != null)
             Card(
               color: Colors.red.shade100,
               child: Padding(
                 padding: const EdgeInsets.all(12),
-                child: Text(_error!),
+                child: Text(_noIpError ? l10n.noIpAddress : _error!),
               ),
             ),
-          const Text('Channel Mode'),
+          Text(l10n.channelMode),
           const SizedBox(height: 12),
-          ..._modeDescriptions.entries.map((entry) {
-            final isSelected = _chMode == entry.key;
-            return Card(
-              key: Key('strip_chmode_${entry.key}'),
-              color: isSelected
-                  ? Theme.of(context).colorScheme.primaryContainer
-                  : null,
-              child: ListTile(
-                title: Text(
-                  entry.key,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text(entry.value),
-                trailing: isSelected
-                    ? const Icon(Icons.check_circle, color: Colors.green)
-                    : null,
-                onTap: () => _setMode(entry.key),
-              ),
-            );
-          }),
+          for (final mode in _modes)
+            Builder(
+              builder: (context) {
+                final isSelected = _chMode == mode;
+                return Card(
+                  key: Key('strip_chmode_$mode'),
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primaryContainer
+                      : null,
+                  child: ListTile(
+                    title: Text(
+                      mode,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text(_modeDescription(l10n, mode)),
+                    trailing: isSelected
+                        ? const Icon(Icons.check_circle, color: Colors.green)
+                        : null,
+                    onTap: () => _setMode(mode),
+                  ),
+                );
+              },
+            ),
           const SizedBox(height: 24),
-          const Text(
-            'Changing the channel mode affects how the strip is controlled. '
-            'The control page will adapt automatically.',
-            style: TextStyle(fontSize: 12, color: Colors.grey),
+          Text(
+            l10n.chModeChangeNote,
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
           ),
         ],
       ),

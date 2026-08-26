@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 /// Placeholder WiFi setup page.
 ///
 /// Reuses the provisioning wizard from [AddDevicePage] for a device that
@@ -11,11 +13,10 @@ class WifiSetupPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('WiFi Setup')),
-      body: const Center(
-        child: Text('WiFi reconfiguration wizard — see Add Device.'),
-      ),
+      appBar: AppBar(title: Text(l10n.wifiSetup)),
+      body: Center(child: Text(l10n.wifiSetupPlaceholder)),
     );
   }
 }

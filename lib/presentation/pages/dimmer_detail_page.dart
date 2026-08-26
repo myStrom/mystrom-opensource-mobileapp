@@ -6,6 +6,8 @@ import '../../data/models/dimmer_state.dart';
 import '../../domain/entities/device_entity.dart';
 import '../../domain/usecases/control_dimmer.dart';
 import '../../domain/usecases/set_timer.dart';
+import '../../l10n/app_localizations.dart';
+import '../utils/number_format.dart';
 import '../widgets/feature_tiles_row.dart';
 import '../widgets/timer_controls.dart';
 import 'device_settings_page.dart';
@@ -26,6 +28,7 @@ class _DimmerDetailPageState extends State<DimmerDetailPage> {
   late final SetTimer _timer;
   DimmerStateModel? _state;
   bool _loading = true;
+  bool _noIpError = false;
   String? _error;
   int _ramp = 500;
   int _value = 50;
@@ -47,13 +50,15 @@ class _DimmerDetailPageState extends State<DimmerDetailPage> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'No IP address';
+        _noIpError = true;
+        _error = null;
       });
       return;
     }
     if (!mounted) return;
     setState(() {
       _loading = true;
+      _noIpError = false;
       _error = null;
     });
     try {
@@ -85,10 +90,13 @@ class _DimmerDetailPageState extends State<DimmerDetailPage> {
         child: TimerControls(
           onSet: (mode, seconds) async {
             if (widget.device.bestIp == null) return;
+            final timerSetMsg = AppLocalizations.of(context).timerSet;
             try {
               await _timer(widget.device.bestIp!, mode: mode, seconds: seconds);
-              _snack('Timer set');
+              if (!mounted) return;
+              _snack(timerSetMsg);
             } catch (e) {
+              if (!mounted) return;
               _snack(e.toString());
             }
           },
@@ -99,6 +107,7 @@ class _DimmerDetailPageState extends State<DimmerDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final on = _state?.on ?? false;
     return Scaffold(
       appBar: AppBar(
@@ -111,7 +120,7 @@ class _DimmerDetailPageState extends State<DimmerDetailPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
-            tooltip: 'Settings',
+            tooltip: l10n.settingsTooltip,
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -127,17 +136,17 @@ class _DimmerDetailPageState extends State<DimmerDetailPage> {
           padding: const EdgeInsets.all(16),
           children: [
             if (_loading) const Center(child: CircularProgressIndicator()),
-            if (_error != null)
+            if (_noIpError || _error != null)
               Card(
                 color: Colors.red.shade100,
                 child: Padding(
                   padding: const EdgeInsets.all(12),
-                  child: Text(_error!),
+                  child: Text(_noIpError ? l10n.noIpAddress : _error!),
                 ),
               ),
             SwitchListTile(
               key: const Key('dimmer_on_switch'),
-              title: const Text('On'),
+              title: Text(l10n.on),
               value: on,
               onChanged: widget.device.lockable
                   ? null
@@ -163,21 +172,23 @@ class _DimmerDetailPageState extends State<DimmerDetailPage> {
             ),
             Row(
               children: [
-                const Text('Ramp'),
+                Text(l10n.ramp),
                 Expanded(
                   child: Slider(
                     key: const Key('dimmer_ramp_slider'),
                     min: 0,
                     max: 15000,
                     value: _ramp.toDouble().clamp(0, 15000),
-                    label: '${(_ramp / 1000).toStringAsFixed(1)}s',
+                    label: l10n.rampSeconds(
+                      formatDecimal(context, _ramp / 1000, 1),
+                    ),
                     onChanged: (v) => setState(() => _ramp = v.round()),
                   ),
                 ),
-                Text('${(_ramp / 1000).toStringAsFixed(1)}s'),
+                Text(l10n.rampSeconds(formatDecimal(context, _ramp / 1000, 1))),
               ],
             ),
-            Text('Brightness: $_value%'),
+            Text(l10n.brightnessPercent('$_value')),
             Slider(
               key: const Key('dimmer_value_slider'),
               min: 0,

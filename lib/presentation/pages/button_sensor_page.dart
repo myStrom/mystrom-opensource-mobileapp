@@ -9,8 +9,10 @@ import '../../data/repositories/action_config_repository.dart';
 import '../../domain/entities/device_entity.dart';
 import '../../domain/usecases/configure_button_action.dart';
 import '../../domain/usecases/read_sensors.dart';
+import '../../l10n/app_localizations.dart';
 import '../providers/device_provider.dart';
 import 'device_settings_page.dart';
+import '../utils/number_format.dart';
 import '../widgets/action_url_picker.dart';
 import '../widgets/battery_indicator.dart';
 import '../widgets/sensor_card.dart';
@@ -30,6 +32,7 @@ class _ButtonSensorPageState extends State<ButtonSensorPage> {
   late final ConfigureButtonAction _config;
   ButtonSensorStateModel? _state;
   bool _loading = true;
+  bool _noIpError = false;
   String? _error;
 
   @override
@@ -48,13 +51,15 @@ class _ButtonSensorPageState extends State<ButtonSensorPage> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'No IP address';
+        _noIpError = true;
+        _error = null;
       });
       return;
     }
     if (!mounted) return;
     setState(() {
       _loading = true;
+      _noIpError = false;
       _error = null;
     });
     try {
@@ -101,41 +106,39 @@ class _ButtonSensorPageState extends State<ButtonSensorPage> {
     ];
   }
 
-  /// Human-readable label for a referer (btn1 -> "Button 1", etc.).
-  static String _refererLabel(String referer) {
+  static String _refererLabel(AppLocalizations l10n, String referer) {
     switch (referer) {
       case 'btn1':
-        return 'Button 1';
+        return l10n.buttonN(1);
       case 'btn2':
-        return 'Button 2';
+        return l10n.buttonN(2);
       case 'btn3':
-        return 'Button 3';
+        return l10n.buttonN(3);
       case 'btn4':
-        return 'Button 4';
+        return l10n.buttonN(4);
       case 'temp':
-        return 'Temperature';
+        return l10n.temperature;
       case 'humi':
-        return 'Humidity';
+        return l10n.humidity;
       default:
         return referer[0].toUpperCase() + referer.substring(1);
     }
   }
 
-  /// Human-readable label for an action.
-  static String _actionLabel(String action) {
+  static String _actionLabel(AppLocalizations l10n, String action) {
     switch (action) {
       case 'generic':
-        return 'Generic';
+        return l10n.generic;
       case 'single':
-        return 'Single press';
+        return l10n.singlePress;
       case 'double':
-        return 'Double press';
+        return l10n.doublePress;
       case 'long':
-        return 'Long press';
+        return l10n.longPress;
       case 'over':
-        return 'Over threshold';
+        return l10n.overThreshold;
       case 'under':
-        return 'Under threshold';
+        return l10n.underThreshold;
       default:
         return action[0].toUpperCase() + action.substring(1);
     }
@@ -143,6 +146,7 @@ class _ButtonSensorPageState extends State<ButtonSensorPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final devices = context.watch<DeviceProvider>().devices;
     return Scaffold(
       appBar: AppBar(
@@ -156,7 +160,7 @@ class _ButtonSensorPageState extends State<ButtonSensorPage> {
           IconButton(
             key: const Key('button_settings_button'),
             icon: const Icon(Icons.settings),
-            tooltip: 'Settings',
+            tooltip: l10n.settingsTooltip,
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -172,12 +176,12 @@ class _ButtonSensorPageState extends State<ButtonSensorPage> {
           padding: const EdgeInsets.all(16),
           children: [
             if (_loading) const Center(child: CircularProgressIndicator()),
-            if (_error != null)
+            if (_noIpError || _error != null)
               Card(
                 color: Colors.red.shade100,
                 child: Padding(
                   padding: const EdgeInsets.all(12),
-                  child: Text(_error!),
+                  child: Text(_noIpError ? l10n.noIpAddress : _error!),
                 ),
               ),
             Wrap(
@@ -186,24 +190,27 @@ class _ButtonSensorPageState extends State<ButtonSensorPage> {
               children: [
                 if (_state?.temperature != null)
                   SensorCard(
-                    label: 'Temperature',
-                    value:
-                        (_state!.temperature! + widget.device.temperatureOffset)
-                            .toStringAsFixed(1),
+                    label: l10n.temperature,
+                    value: formatDecimal(
+                      context,
+                      _state!.temperature! + widget.device.temperatureOffset,
+                      1,
+                    ),
                     unit: '°C',
                     icon: Icons.thermostat,
                   ),
                 if (_state?.humidity != null)
                   SensorCard(
-                    label: 'Humidity',
-                    value: _state!.humidity!.toStringAsFixed(1),
-                    unit: '%',
+                    label: l10n.humidity,
+                    value: l10n.percentValue(
+                      formatDecimal(context, _state!.humidity!, 1),
+                    ),
                     icon: Icons.water_drop,
                   ),
                 if (_state?.battery != null)
                   SensorCard(
-                    label: 'Battery',
-                    value: '${_state!.battery!.percent}%',
+                    label: l10n.battery,
+                    value: l10n.percentValue('${_state!.battery!.percent}'),
                     icon: Icons.battery_full,
                   ),
               ],
@@ -217,25 +224,25 @@ class _ButtonSensorPageState extends State<ButtonSensorPage> {
                 ),
               ),
             const SizedBox(height: 24),
-            const Text(
-              'Action URLs',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Text(
+              l10n.actionUrls,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             for (final (referer, actions) in _refererActions) ...[
               Padding(
                 padding: const EdgeInsets.only(top: 12, bottom: 4),
                 child: Text(
-                  _refererLabel(referer),
+                  _refererLabel(l10n, referer),
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
               for (final action in actions)
                 ListTile(
                   dense: true,
-                  title: Text(_actionLabel(action)),
+                  title: Text(_actionLabel(l10n, action)),
                   trailing: const Icon(Icons.edit, size: 18),
-                  onTap: () => _configure(referer, action, devices),
+                  onTap: () => _configure(referer, action, devices, l10n),
                 ),
               const Divider(),
             ],
@@ -249,6 +256,7 @@ class _ButtonSensorPageState extends State<ButtonSensorPage> {
     String referer,
     String action,
     List<DeviceEntity> devices,
+    AppLocalizations l10n,
   ) async {
     if (widget.device.bestIp == null) return;
     final url = await showDialog<String>(
@@ -266,7 +274,7 @@ class _ButtonSensorPageState extends State<ButtonSensorPage> {
         action: action,
         url: url,
       );
-      _snack('$referer/$action → $url');
+      _snack(l10n.refererActionUrlSaved(referer, action, url));
     } catch (e) {
       _snack(e.toString());
     }

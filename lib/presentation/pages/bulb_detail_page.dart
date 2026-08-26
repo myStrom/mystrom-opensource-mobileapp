@@ -9,6 +9,8 @@ import '../../data/models/bulb_state.dart';
 import '../../domain/entities/device_entity.dart';
 import '../../domain/usecases/control_bulb.dart';
 import '../../domain/usecases/set_timer.dart';
+import '../../l10n/app_localizations.dart';
+import '../utils/number_format.dart';
 import '../widgets/color_picker_widget.dart';
 import '../widgets/feature_tiles_row.dart';
 import '../widgets/timer_controls.dart';
@@ -39,6 +41,7 @@ class _BulbDetailPageState extends State<BulbDetailPage>
   late final TabController _tabController;
   BulbStateModel? _state;
   bool _loading = true;
+  bool _noIpError = false;
   String? _error;
   int _ramp = 500;
 
@@ -108,13 +111,15 @@ class _BulbDetailPageState extends State<BulbDetailPage>
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'No IP address';
+        _noIpError = true;
+        _error = null;
       });
       return;
     }
     if (!mounted) return;
     setState(() {
       _loading = true;
+      _noIpError = false;
       _error = null;
     });
     try {
@@ -216,6 +221,7 @@ class _BulbDetailPageState extends State<BulbDetailPage>
         child: TimerControls(
           onSet: (mode, seconds) async {
             if (widget.device.bestIp == null) return;
+            final timerSetMsg = AppLocalizations.of(context).timerSet;
             try {
               await _timer(
                 widget.device.bestIp!,
@@ -223,8 +229,10 @@ class _BulbDetailPageState extends State<BulbDetailPage>
                 seconds: seconds,
                 path: ApiEndpoints.bulbTimer,
               );
-              _snack('Timer set');
+              if (!mounted) return;
+              _snack(timerSetMsg);
             } catch (e) {
+              if (!mounted) return;
               _snack(e.toString());
             }
           },
@@ -235,6 +243,7 @@ class _BulbDetailPageState extends State<BulbDetailPage>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final on = _state?.on ?? false;
     final currentMode = _state?.mode ?? 'hsv';
     return Scaffold(
@@ -249,7 +258,7 @@ class _BulbDetailPageState extends State<BulbDetailPage>
           IconButton(
             key: const Key('bulb_settings_button'),
             icon: const Icon(Icons.settings),
-            tooltip: 'Settings',
+            tooltip: l10n.settingsTooltip,
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -265,17 +274,17 @@ class _BulbDetailPageState extends State<BulbDetailPage>
           padding: const EdgeInsets.all(16),
           children: [
             if (_loading) const Center(child: CircularProgressIndicator()),
-            if (_error != null)
+            if (_noIpError || _error != null)
               Card(
                 color: Colors.red.shade100,
                 child: Padding(
                   padding: const EdgeInsets.all(12),
-                  child: Text(_error!),
+                  child: Text(_noIpError ? l10n.noIpAddress : _error!),
                 ),
               ),
             SwitchListTile(
               key: const Key('bulb_on_switch'),
-              title: const Text('On'),
+              title: Text(l10n.on),
               value: on,
               onChanged: widget.device.lockable
                   ? null
@@ -301,18 +310,20 @@ class _BulbDetailPageState extends State<BulbDetailPage>
             ),
             Row(
               children: [
-                const Text('Ramp'),
+                Text(l10n.ramp),
                 Expanded(
                   child: Slider(
                     key: const Key('bulb_ramp_slider'),
                     min: 0,
                     max: 15000,
                     value: _ramp.toDouble().clamp(0, 15000),
-                    label: '${(_ramp / 1000).toStringAsFixed(1)}s',
+                    label: l10n.rampSeconds(
+                      formatDecimal(context, _ramp / 1000, 1),
+                    ),
                     onChanged: (v) => setState(() => _ramp = v.round()),
                   ),
                 ),
-                Text('${(_ramp / 1000).toStringAsFixed(1)}s'),
+                Text(l10n.rampSeconds(formatDecimal(context, _ramp / 1000, 1))),
               ],
             ),
             const SizedBox(height: 16),
@@ -326,16 +337,18 @@ class _BulbDetailPageState extends State<BulbDetailPage>
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
-                'Device mode: ${currentMode.isNotEmpty ? currentMode : "unknown"}',
+                l10n.deviceMode(
+                  currentMode.isNotEmpty ? currentMode : l10n.unknown,
+                ),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
             TabBar(
               controller: _tabController,
-              tabs: const [
-                Tab(key: Key('bulb_tab_color'), text: 'Color'),
-                Tab(key: Key('bulb_tab_whites'), text: 'Whites'),
-                Tab(key: Key('bulb_tab_wrgb'), text: 'WRGB'),
+              tabs: [
+                Tab(key: const Key('bulb_tab_color'), text: l10n.tabColor),
+                Tab(key: const Key('bulb_tab_whites'), text: l10n.tabWhites),
+                Tab(key: const Key('bulb_tab_wrgb'), text: l10n.tabWrgb),
               ],
             ),
             const SizedBox(height: 8),
@@ -345,9 +358,9 @@ class _BulbDetailPageState extends State<BulbDetailPage>
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _buildColorTab(),
-                  _buildWhitesTab(),
-                  _buildWrgbTab(),
+                  _buildColorTab(l10n),
+                  _buildWhitesTab(l10n),
+                  _buildWrgbTab(l10n),
                 ],
               ),
             ),
@@ -358,10 +371,10 @@ class _BulbDetailPageState extends State<BulbDetailPage>
   }
 
   // ---- Color (HSV) tab ----
-  Widget _buildColorTab() {
+  Widget _buildColorTab(AppLocalizations l10n) {
     return Column(
       children: [
-        const Text('Color (HSV)'),
+        Text(l10n.colorHsv),
         const SizedBox(height: 8),
         ColorPickerWidget(
           key: ValueKey('bulb-hsv-${_state?.color}'),
@@ -375,13 +388,13 @@ class _BulbDetailPageState extends State<BulbDetailPage>
   }
 
   // ---- Whites (cold/warm) tab ----
-  Widget _buildWhitesTab() {
+  Widget _buildWhitesTab(AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Whites (Cold / Warm)'),
+        Text(l10n.whitesColdWarm),
         const SizedBox(height: 8),
-        Text('White: $_whitesIndex'),
+        Text(l10n.whiteIndex('$_whitesIndex')),
         Slider(
           key: const Key('bulb_whites_white'),
           min: 1,
@@ -393,7 +406,7 @@ class _BulbDetailPageState extends State<BulbDetailPage>
           onChangeEnd: (_) => _scheduleWhitesUpdate(),
         ),
         const SizedBox(height: 8),
-        Text('Brightness: $_whitesBrightness%'),
+        Text(l10n.brightnessPercent('$_whitesBrightness')),
         Slider(
           key: const Key('bulb_whites_brightness'),
           min: 0,
@@ -408,14 +421,14 @@ class _BulbDetailPageState extends State<BulbDetailPage>
   }
 
   // ---- WRGB sliders tab ----
-  Widget _buildWrgbTab() {
+  Widget _buildWrgbTab(AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('WRGB'),
+        Text(l10n.tabWrgb),
         const SizedBox(height: 8),
         _wrgbSlider(
-          'White',
+          l10n.colorWhite,
           _wrgbW,
           Colors.amber,
           (v) {
@@ -423,9 +436,10 @@ class _BulbDetailPageState extends State<BulbDetailPage>
           },
           () => _scheduleWrgbUpdate(),
           sliderKey: const Key('bulb_wrgb_white'),
+          l10n: l10n,
         ),
         _wrgbSlider(
-          'Red',
+          l10n.colorRed,
           _wrgbR,
           Colors.red,
           (v) {
@@ -433,9 +447,10 @@ class _BulbDetailPageState extends State<BulbDetailPage>
           },
           () => _scheduleWrgbUpdate(),
           sliderKey: const Key('bulb_wrgb_red'),
+          l10n: l10n,
         ),
         _wrgbSlider(
-          'Green',
+          l10n.colorGreen,
           _wrgbG,
           Colors.green,
           (v) {
@@ -443,9 +458,10 @@ class _BulbDetailPageState extends State<BulbDetailPage>
           },
           () => _scheduleWrgbUpdate(),
           sliderKey: const Key('bulb_wrgb_green'),
+          l10n: l10n,
         ),
         _wrgbSlider(
-          'Blue',
+          l10n.colorBlue,
           _wrgbB,
           Colors.blue,
           (v) {
@@ -453,6 +469,7 @@ class _BulbDetailPageState extends State<BulbDetailPage>
           },
           () => _scheduleWrgbUpdate(),
           sliderKey: const Key('bulb_wrgb_blue'),
+          l10n: l10n,
         ),
       ],
     );
@@ -465,6 +482,7 @@ class _BulbDetailPageState extends State<BulbDetailPage>
     ValueChanged<double> onChanged,
     VoidCallback onChangeEnd, {
     Key? sliderKey,
+    required AppLocalizations l10n,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -473,7 +491,7 @@ class _BulbDetailPageState extends State<BulbDetailPage>
           children: [
             Icon(Icons.circle, color: color, size: 16),
             const SizedBox(width: 8),
-            Text('$label: $value'),
+            Text(l10n.labelValue(label, '$value')),
           ],
         ),
         Slider(

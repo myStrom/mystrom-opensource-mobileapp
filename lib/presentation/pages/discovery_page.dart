@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 /// Placeholder discovery page — shows raw UDP discovery stream.
 ///
 /// In the current architecture the main [DeviceListPage] already merges
@@ -9,11 +11,10 @@ class DiscoveryPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Discovery')),
-      body: const Center(
-        child: Text('See device list — discovery runs continuously.'),
-      ),
+      appBar: AppBar(title: Text(l10n.discovery)),
+      body: Center(child: Text(l10n.discoveryPlaceholder)),
     );
   }
 }

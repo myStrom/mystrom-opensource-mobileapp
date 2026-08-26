@@ -8,6 +8,8 @@ import '../../data/models/device_info.dart';
 import '../../data/models/scheduler_item.dart';
 import '../../domain/entities/device_entity.dart';
 import '../../domain/usecases/control_scheduler.dart';
+import '../../l10n/app_localizations.dart';
+import '../utils/action_l10n.dart';
 
 /// Scheduler page — firmware >= 5.0.0 on WS2, WSE, WRS, WMS, WSX, WLL only.
 ///
@@ -26,14 +28,13 @@ class SchedulerPage extends StatefulWidget {
 }
 
 class _SchedulerPageState extends State<SchedulerPage> {
-  static const _dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
   late final ControlScheduler _control;
   late final DeviceRemoteDataSource _remote;
 
   List<SchedulerItem> _items = [];
   bool _loading = true;
   String? _error;
+  bool _noIp = false;
   bool _dirty = false;
 
   // Variant capabilities discovered from /info.
@@ -41,7 +42,7 @@ class _SchedulerPageState extends State<SchedulerPage> {
   bool _hasRamp = false; // WRS + WLL
   bool _hasValue = false; // WLL
   bool _schedulerSupported = false;
-  String? _unsupportedReason;
+  String? _unsupportedFw;
 
   @override
   void initState() {
@@ -58,13 +59,14 @@ class _SchedulerPageState extends State<SchedulerPage> {
     if (ip == null) {
       setState(() {
         _loading = false;
-        _error = 'No IP address';
+        _noIp = true;
       });
       return;
     }
     setState(() {
       _loading = true;
       _error = null;
+      _noIp = false;
     });
     try {
       // 1. Discover variant + firmware so we can decide capability flags.
@@ -99,8 +101,6 @@ class _SchedulerPageState extends State<SchedulerPage> {
       if (!_schedulerSupported) {
         setState(() {
           _loading = false;
-          _error =
-              _unsupportedReason ?? 'Scheduler not supported on this device';
         });
         return;
       }
@@ -128,18 +128,11 @@ class _SchedulerPageState extends State<SchedulerPage> {
     final fw = info.version;
     if (!DeviceType.schedulerAvailable(type, fw)) {
       _schedulerSupported = false;
-      if (!type.hasScheduler) {
-        _unsupportedReason =
-            'Scheduler is only available on WS2, WSE, WRS, WMS, WSX and WLL.';
-      } else if (fw.isEmpty) {
-        _unsupportedReason =
-            'Could not read firmware version. Requires firmware >= 5.0.0.';
-      } else {
-        _unsupportedReason = 'Requires firmware >= 5.0.0 (current: $fw).';
-      }
+      _unsupportedFw = fw;
       return;
     }
     _schedulerSupported = true;
+    _unsupportedFw = null;
     // The /info `type` field is a string variant reported by the device.
     final variant = info.type.toLowerCase();
     if (type == DeviceType.wrs || variant == 'strip' || variant == 'wrs') {
@@ -166,6 +159,7 @@ class _SchedulerPageState extends State<SchedulerPage> {
   Future<void> _save() async {
     final ip = widget.device.bestIp;
     if (ip == null) return;
+    final l10n = AppLocalizations.of(context);
     try {
       final utc = _items
           .map<SchedulerItem>(SchedulerTimeConverter.localToUtc)
@@ -179,9 +173,9 @@ class _SchedulerPageState extends State<SchedulerPage> {
         _items = local;
         _dirty = false;
       });
-      _snack('Schedule saved');
+      _snack(l10n.scheduleSaved);
     } catch (e) {
-      _snack('Save failed: $e');
+      _snack(l10n.saveFailed(e.toString()));
     }
   }
 
@@ -208,24 +202,23 @@ class _SchedulerPageState extends State<SchedulerPage> {
   }
 
   Future<bool> _confirmDiscard(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     return await showDialog<bool>(
           context: context,
           builder: (_) => AlertDialog(
-            title: const Text('Discard changes?'),
-            content: const Text(
-              'You have unsaved changes. Are you sure you want to quit without saving?',
-            ),
+            title: Text(l10n.discardChangesTitle),
+            content: Text(l10n.discardChangesMessage),
             actions: [
               TextButton(
                 key: const Key('scheduler_discard_cancel'),
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
+                child: Text(l10n.cancel),
               ),
               FilledButton(
                 key: const Key('scheduler_discard_confirm'),
                 onPressed: () => Navigator.pop(context, true),
                 style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text('Quit without saving'),
+                child: Text(l10n.quitWithoutSaving),
               ),
             ],
           ),
@@ -238,6 +231,7 @@ class _SchedulerPageState extends State<SchedulerPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
@@ -256,31 +250,71 @@ class _SchedulerPageState extends State<SchedulerPage> {
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.maybePop(context),
           ),
-          title: Text('${widget.device.displayName} — Scheduler'),
+          title: Text(l10n.schedulerTitle(widget.device.displayName)),
           actions: [
             IconButton(
               icon: const Icon(Icons.refresh),
-              tooltip: 'Reload',
+              tooltip: l10n.reload,
               onPressed: _load,
             ),
           ],
         ),
-        body: _buildBody(context),
+        body: _buildBody(context, l10n),
         floatingActionButton: _schedulerSupported && !_loading
             ? FloatingActionButton.extended(
                 key: const Key('scheduler_save_fab'),
                 onPressed: _save,
                 icon: const Icon(Icons.save),
-                label: const Text('Save All'),
+                label: Text(l10n.saveAll),
               )
             : null,
       ),
     );
   }
 
-  Widget _buildBody(BuildContext context) {
+  String _unsupportedMessage(AppLocalizations l10n) {
+    final type = widget.device.type;
+    final fw = _unsupportedFw ?? '';
+    if (!type.hasScheduler) {
+      return l10n.schedulerDeviceList;
+    }
+    if (fw.isEmpty) {
+      return l10n.firmwareVersionUnreadable;
+    }
+    return l10n.firmwareVersionRequired(fw);
+  }
+
+  Widget _buildBody(BuildContext context, AppLocalizations l10n) {
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
+    }
+    if (_noIp) {
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Card(
+            color: Colors.red.shade100,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Text(l10n.noIpAddress),
+            ),
+          ),
+        ],
+      );
+    }
+    if (!_schedulerSupported) {
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Card(
+            color: Colors.red.shade100,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Text(_unsupportedMessage(l10n)),
+            ),
+          ),
+        ],
+      );
     }
     if (_error != null) {
       return ListView(
@@ -307,9 +341,9 @@ class _SchedulerPageState extends State<SchedulerPage> {
         ),
         const SizedBox(height: 16),
         if (_items.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
-            child: Center(child: Text('No schedules yet')),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: Text(l10n.noSchedulesYet)),
           )
         else
           for (var i = 0; i < _items.length; i++)
@@ -410,8 +444,19 @@ class _AddFormState extends State<_AddForm> {
     _valueCtrl.clear();
   }
 
+  List<DropdownMenuItem<String>> _actionItems(AppLocalizations l10n) {
+    return [
+      DropdownMenuItem(value: 'on', child: Text(l10n.actionOn)),
+      DropdownMenuItem(value: 'off', child: Text(l10n.actionOff)),
+      DropdownMenuItem(value: 'toggle', child: Text(l10n.actionToggle)),
+      if (widget.hasColor)
+        DropdownMenuItem(value: 'set', child: Text(l10n.setColorOnly)),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -419,7 +464,7 @@ class _AddFormState extends State<_AddForm> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Add new schedule',
+              l10n.addNewSchedule,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 12),
@@ -434,9 +479,9 @@ class _AddFormState extends State<_AddForm> {
                     key: const Key('scheduler_hour_field'),
                     controller: _hourCtrl,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Hour',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.hour,
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                 ),
@@ -446,28 +491,16 @@ class _AddFormState extends State<_AddForm> {
                     key: const Key('scheduler_minute_field'),
                     controller: _minuteCtrl,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Minute',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.minute,
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                 ),
                 DropdownButton<String>(
                   key: const Key('scheduler_action_dropdown'),
                   value: _action,
-                  items: [
-                    const DropdownMenuItem(value: 'on', child: Text('on')),
-                    const DropdownMenuItem(value: 'off', child: Text('off')),
-                    const DropdownMenuItem(
-                      value: 'toggle',
-                      child: Text('toggle'),
-                    ),
-                    if (widget.hasColor)
-                      const DropdownMenuItem(
-                        value: 'set',
-                        child: Text('set (color only)'),
-                      ),
-                  ],
+                  items: _actionItems(l10n),
                   onChanged: (v) => setState(() => _action = v ?? 'on'),
                 ),
                 if (widget.hasColor)
@@ -475,10 +508,10 @@ class _AddFormState extends State<_AddForm> {
                     width: 120,
                     child: TextField(
                       controller: _colorCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Color (HSV)',
+                      decoration: InputDecoration(
+                        labelText: l10n.colorHsv,
                         hintText: '360;100;100',
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
                       ),
                     ),
                   ),
@@ -488,9 +521,9 @@ class _AddFormState extends State<_AddForm> {
                     child: TextField(
                       controller: _rampCtrl,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Ramp (ms)',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: l10n.rampMs,
+                        border: const OutlineInputBorder(),
                       ),
                     ),
                   ),
@@ -500,9 +533,9 @@ class _AddFormState extends State<_AddForm> {
                     child: TextField(
                       controller: _valueCtrl,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Value %',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: l10n.valuePercent,
+                        border: const OutlineInputBorder(),
                       ),
                     ),
                   ),
@@ -518,7 +551,7 @@ class _AddFormState extends State<_AddForm> {
               key: const Key('scheduler_add_button'),
               onPressed: _submit,
               icon: const Icon(Icons.add),
-              label: const Text('Add'),
+              label: Text(l10n.add),
             ),
           ],
         ),
@@ -536,12 +569,13 @@ class _DaysPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Wrap(
       spacing: 6,
       children: [
         for (var i = 0; i < 7; i++)
           FilterChip(
-            label: Text(_SchedulerPageState._dayLabels[i]),
+            label: Text(localizedDayLabel(l10n, i)),
             selected: selected.contains(SchedulerTimeConverter.dayNames[i]),
             onSelected: (v) {
               final next = Set<String>.from(selected);
@@ -656,8 +690,19 @@ class _SchedulerCardState extends State<_SchedulerCard> {
     );
   }
 
+  List<DropdownMenuItem<String>> _actionItems(AppLocalizations l10n) {
+    return [
+      DropdownMenuItem(value: 'on', child: Text(l10n.actionOn)),
+      DropdownMenuItem(value: 'off', child: Text(l10n.actionOff)),
+      DropdownMenuItem(value: 'toggle', child: Text(l10n.actionToggle)),
+      if (widget.hasColor)
+        DropdownMenuItem(value: 'set', child: Text(l10n.setColorOnly)),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -674,13 +719,13 @@ class _SchedulerCardState extends State<_SchedulerCard> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Enable',
+                    l10n.enable,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete_outline),
-                  tooltip: 'Delete',
+                  tooltip: l10n.delete,
                   onPressed: widget.onDelete,
                 ),
               ],
@@ -696,9 +741,9 @@ class _SchedulerCardState extends State<_SchedulerCard> {
                   child: TextField(
                     controller: _hourCtrl,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Hour',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.hour,
+                      border: const OutlineInputBorder(),
                     ),
                     onChanged: (_) => _emit(),
                   ),
@@ -708,28 +753,16 @@ class _SchedulerCardState extends State<_SchedulerCard> {
                   child: TextField(
                     controller: _minuteCtrl,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Minute',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.minute,
+                      border: const OutlineInputBorder(),
                     ),
                     onChanged: (_) => _emit(),
                   ),
                 ),
                 DropdownButton<String>(
                   value: _action,
-                  items: [
-                    const DropdownMenuItem(value: 'on', child: Text('on')),
-                    const DropdownMenuItem(value: 'off', child: Text('off')),
-                    const DropdownMenuItem(
-                      value: 'toggle',
-                      child: Text('toggle'),
-                    ),
-                    if (widget.hasColor)
-                      const DropdownMenuItem(
-                        value: 'set',
-                        child: Text('set (color only)'),
-                      ),
-                  ],
+                  items: _actionItems(l10n),
                   onChanged: (v) {
                     if (v == null) return;
                     setState(() => _action = v);
@@ -741,10 +774,10 @@ class _SchedulerCardState extends State<_SchedulerCard> {
                     width: 120,
                     child: TextField(
                       controller: _colorCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Color (HSV)',
+                      decoration: InputDecoration(
+                        labelText: l10n.colorHsv,
                         hintText: '360;100;100',
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
                       ),
                       onChanged: (_) => _emit(),
                     ),
@@ -755,9 +788,9 @@ class _SchedulerCardState extends State<_SchedulerCard> {
                     child: TextField(
                       controller: _rampCtrl,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Ramp (ms)',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: l10n.rampMs,
+                        border: const OutlineInputBorder(),
                       ),
                       onChanged: (_) => _emit(),
                     ),
@@ -768,9 +801,9 @@ class _SchedulerCardState extends State<_SchedulerCard> {
                     child: TextField(
                       controller: _valueCtrl,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Value %',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: l10n.valuePercent,
+                        border: const OutlineInputBorder(),
                       ),
                       onChanged: (_) => _emit(),
                     ),

@@ -8,7 +8,10 @@ import '../../data/models/switch_state.dart';
 import '../../domain/entities/device_entity.dart';
 import '../../domain/usecases/control_switch.dart';
 import '../../domain/usecases/set_timer.dart';
+import '../../l10n/app_localizations.dart';
 import '../providers/device_provider.dart';
+import '../utils/device_type_l10n.dart';
+import '../utils/number_format.dart';
 import '../widgets/feature_tiles_row.dart';
 import '../widgets/timer_controls.dart';
 import 'device_settings_page.dart';
@@ -31,6 +34,7 @@ class _SwitchDetailPageState extends State<SwitchDetailPage> {
   late final DeviceRemoteDataSource _remote;
   SwitchStateModel? _state;
   bool _loading = true;
+  bool _noIpError = false;
   String? _error;
 
   @override
@@ -54,13 +58,15 @@ class _SwitchDetailPageState extends State<SwitchDetailPage> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'No IP address';
+        _noIpError = true;
+        _error = null;
       });
       return;
     }
     if (!mounted) return;
     setState(() {
       _loading = true;
+      _noIpError = false;
       _error = null;
     });
     try {
@@ -86,7 +92,7 @@ class _SwitchDetailPageState extends State<SwitchDetailPage> {
 
   Future<void> _setRelay(bool on) async {
     if (widget.device.lockable) {
-      _snack('This device is locked — on/off toggle is disabled.');
+      _snack(AppLocalizations.of(context).deviceLockedToggleDisabled);
       return;
     }
     if (widget.device.bestIp == null) return;
@@ -106,6 +112,7 @@ class _SwitchDetailPageState extends State<SwitchDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final relay = _state?.relay ?? false;
     return Scaffold(
       appBar: AppBar(
@@ -119,7 +126,7 @@ class _SwitchDetailPageState extends State<SwitchDetailPage> {
           IconButton(
             key: const Key('detail_settings_button'),
             icon: const Icon(Icons.settings_outlined),
-            tooltip: 'Settings',
+            tooltip: l10n.settingsTooltip,
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -139,17 +146,17 @@ class _SwitchDetailPageState extends State<SwitchDetailPage> {
             const SizedBox(height: 16),
 
             if (_loading) const Center(child: CircularProgressIndicator()),
-            if (_error != null)
+            if (_noIpError || _error != null)
               Card(
                 color: Colors.red.shade100,
                 child: Padding(
                   padding: const EdgeInsets.all(12),
-                  child: Text(_error!),
+                  child: Text(_noIpError ? l10n.noIpAddress : _error!),
                 ),
               ),
 
             // ---- Power card ----
-            if (!_loading && _error == null) ...[
+            if (!_loading && !_noIpError && _error == null) ...[
               _PowerCard(
                 key: const Key('switch_power_card'),
                 active: relay,
@@ -157,16 +164,22 @@ class _SwitchDetailPageState extends State<SwitchDetailPage> {
                 onToggle: _setRelay,
                 sensorText: [
                   if (_state?.power != null)
-                    '${_state!.power!.toStringAsFixed(1)} W',
+                    l10n.powerWatts(formatDecimal(context, _state!.power!, 1)),
                   if (_state?.temperature != null)
-                    '${(_state!.temperature! + widget.device.temperatureOffset).toStringAsFixed(1)} °C',
+                    l10n.temperatureCelsius(
+                      formatDecimal(
+                        context,
+                        _state!.temperature! + widget.device.temperatureOffset,
+                        1,
+                      ),
+                    ),
                 ].join(' • '),
               ),
               const SizedBox(height: 16),
             ],
 
             // ---- Feature tiles: Timer / Scheduler (big round tiles) ----
-            if (!_loading && _error == null) ...[
+            if (!_loading && !_noIpError && _error == null) ...[
               FeatureTilesRow(
                 device: widget.device,
                 onTimer: () => _showTimerSheet(context),
@@ -205,17 +218,21 @@ class _SwitchDetailPageState extends State<SwitchDetailPage> {
                   children: [
                     ListTile(
                       leading: const Icon(Icons.bar_chart),
-                      title: const Text('Total energy'),
+                      title: Text(l10n.totalEnergy),
                       trailing: Text(
-                        '${(totalWs / 3600000).toStringAsFixed(3)} kWh',
+                        l10n.energyKwh(
+                          formatDecimal(context, totalWs / 3600000, 3),
+                        ),
                       ),
                     ),
                     ListTile(
                       dense: true,
                       leading: const Icon(Icons.restart_alt, size: 20),
-                      title: const Text('Since boot'),
+                      title: Text(l10n.sinceBoot),
                       trailing: Text(
-                        '${(d.bootEnergyWs / 3600000).toStringAsFixed(3)} kWh',
+                        l10n.energyKwh(
+                          formatDecimal(context, d.bootEnergyWs / 3600000, 3),
+                        ),
                       ),
                     ),
                   ],
@@ -237,10 +254,13 @@ class _SwitchDetailPageState extends State<SwitchDetailPage> {
         child: TimerControls(
           onSet: (mode, seconds) async {
             if (widget.device.bestIp == null) return;
+            final timerSetMsg = AppLocalizations.of(context).timerSet;
             try {
               await _timer(widget.device.bestIp!, mode: mode, seconds: seconds);
-              _snack('Timer set');
+              if (!mounted) return;
+              _snack(timerSetMsg);
             } catch (e) {
+              if (!mounted) return;
               _snack(e.toString());
             }
           },
@@ -257,6 +277,7 @@ class _DeviceHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final color = device.colorValue != null
         ? Color(device.colorValue!)
@@ -287,7 +308,7 @@ class _DeviceHeader extends StatelessWidget {
               Text(
                 device.room?.isNotEmpty == true
                     ? device.room!
-                    : device.type.displayName,
+                    : device.type.localizedName(l10n),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.hintColor,
                 ),
@@ -327,6 +348,7 @@ class _PowerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final disabled = lockable;
     return Card(
@@ -337,7 +359,7 @@ class _PowerCard extends StatelessWidget {
         child: Column(
           children: [
             Text(
-              'Power',
+              l10n.power,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -365,7 +387,7 @@ class _PowerCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              lockable ? 'Locked' : (active ? 'On' : 'Off'),
+              lockable ? l10n.locked : (active ? l10n.on : l10n.off),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,

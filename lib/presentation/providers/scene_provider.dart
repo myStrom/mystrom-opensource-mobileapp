@@ -53,8 +53,10 @@ class SceneProvider extends ChangeNotifier {
   }
 
   /// Creates a new empty scene with sensible defaults.
+  ///
+  /// Pass [name] from the UI (e.g. `AppLocalizations.of(context).newScene`).
   Scene createDraft({
-    String name = 'New scene',
+    required String name,
     int iconCode = 0xe318, // Icons.home
     int colorValue = 0xFF2196F3, // Colors.blue
   }) {
