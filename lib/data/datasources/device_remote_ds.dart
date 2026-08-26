@@ -357,7 +357,7 @@ class DeviceRemoteDataSource {
 
   /// Get PIR general settings: `{"backoff_time": <uint>, "led_enable": <bool>}`.
   /// `backoff_time` is the cooldown in seconds after a motion event
-  /// (1–84600). `led_enable` controls the status LED.
+  /// (1–3600). `led_enable` controls the status LED.
   Future<({int backoffTime, bool ledEnable})> getPirSettings(String ip) async {
     final res = await _client.get(ip, ApiEndpoints.pirSettings);
     final j = res.data as Map<String, dynamic>;

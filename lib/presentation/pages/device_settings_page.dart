@@ -1080,7 +1080,7 @@ class _PirThresholdsSectionState extends State<_PirThresholdsSection> {
 ///
 /// `GET /api/v1/settings/pir` returns `{"backoff_time": <uint>, "led_enable": <bool>}`.
 /// `POST` accepts a partial JSON body; only the included fields are updated.
-/// `backoff_time` is the cooldown in seconds after a motion event (1–84600).
+/// `backoff_time` is the cooldown in seconds after a motion event (1–3600).
 class _PirSettingsSection extends StatefulWidget {
   const _PirSettingsSection({required this.device});
 
@@ -1137,7 +1137,7 @@ class _PirSettingsSectionState extends State<_PirSettingsSection> {
       );
       final s = await remote.setPirSettings(
         ip,
-        backoffTime: _backoffTime?.clamp(1, 84600),
+        backoffTime: _backoffTime?.clamp(1, 3600),
         ledEnable: _ledEnable,
       );
       if (!mounted) return;
@@ -1188,7 +1188,7 @@ class _PirSettingsSectionState extends State<_PirSettingsSection> {
         const SizedBox(height: 4),
         const Text(
           'Backoff time is the cooldown in seconds after a motion event '
-          '(1–84600). LED enable controls the status indicator on the device.',
+          '(1–3600). LED enable controls the status indicator on the device.',
           style: TextStyle(fontSize: 12, color: Colors.grey),
         ),
         const SizedBox(height: 16),
@@ -1196,9 +1196,9 @@ class _PirSettingsSectionState extends State<_PirSettingsSection> {
         Slider(
           key: const Key('pir_backoff_slider'),
           min: 1,
-          max: 84600,
+          max: 3600,
           divisions: 100,
-          value: backoff.clamp(1, 84600).toDouble(),
+          value: backoff.clamp(1, 3600).toDouble(),
           label: '${backoff}s',
           onChanged: (v) => setState(() => _backoffTime = v.round()),
         ),

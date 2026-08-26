@@ -976,6 +976,15 @@ void main() {
     await touchLastSeen(mac);
     await pumpApp(tester);
 
+    // The _PowerSummaryCard fires an async HTTP request in initState;
+    // pumpAndSettle may return before the response arrives, so we pump
+    // in a loop until the loading indicator ('...') is replaced by the
+    // aggregated value or we time out.
+    for (var i = 0; i < 30; i++) {
+      await tester.pump(const Duration(milliseconds: 500));
+      if (find.text('12.5 W').evaluate().isNotEmpty) break;
+    }
+
     // The summary card should show 12.5 W.
     expect(find.text('12.5 W'), findsOneWidget);
 
