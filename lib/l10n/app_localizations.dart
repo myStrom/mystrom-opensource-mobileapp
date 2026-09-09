@@ -831,6 +831,12 @@ abstract class AppLocalizations {
   /// **'Put your device into AP mode (see instructions below). Then pick it from the list, or connect to its WiFi manually and tap \"I\'m already connected\".'**
   String get softApSelectApIntro;
 
+  /// No description provided for @softApSelectApIntroManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Put your device into AP mode (see instructions below). Connect to its WiFi in your device settings, then return here and tap \"I\'m already connected\".'**
+  String get softApSelectApIntroManual;
+
   /// No description provided for @scanForMyStromDevices.
   ///
   /// In en, this message translates to:

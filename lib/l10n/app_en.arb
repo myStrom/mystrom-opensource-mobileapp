@@ -229,6 +229,7 @@
   "apModeLedGreenSuccess": "3× green — connected successfully.",
   "apModeLedRedFailure": "3× red — connection failed.",
   "softApSelectApIntro": "Put your device into AP mode (see instructions below). Then pick it from the list, or connect to its WiFi manually and tap \"I'm already connected\".",
+  "softApSelectApIntroManual": "Put your device into AP mode (see instructions below). Connect to its WiFi in your device settings, then return here and tap \"I'm already connected\".",
   "scanForMyStromDevices": "Scan for myStrom devices",
   "noMyStromApsFound": "No myStrom APs found.\n\n• Make sure the device is in AP mode.\n• Grant Location permission (Settings → Apps → mystrom_local → Permissions).\n• Turn on Location (GPS) in system settings — Android requires it for WiFi scans.\n• If you are already connected to the device AP, tap \"I'm already connected\" below.",
   "apCandidateSubtitle": "{displayName} • {signal} dBm",
