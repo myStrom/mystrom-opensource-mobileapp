@@ -8,6 +8,7 @@ import '../../data/models/scene.dart';
 import '../../domain/entities/device_entity.dart';
 import '../providers/device_provider.dart';
 import '../providers/scene_provider.dart';
+import '../utils/scene_icons.dart';
 import '../widgets/add_device_dialog.dart';
 import '../widgets/device_status_card.dart';
 import '../widgets/discovered_device_card.dart';
@@ -410,8 +411,7 @@ class _SceneChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = Color(scene.colorValue);
-    // ignore: non_const_argument_for_const_parameter
-    final icon = IconData(scene.iconCode, fontFamily: 'MaterialIcons');
+    final icon = sceneIconForCode(scene.iconCode);
     return Material(
       color: color.withValues(alpha: 0.14),
       borderRadius: BorderRadius.circular(16),

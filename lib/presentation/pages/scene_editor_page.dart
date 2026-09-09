@@ -7,6 +7,7 @@ import '../../data/models/scene.dart';
 import '../../domain/entities/device_entity.dart';
 import '../providers/device_provider.dart';
 import '../providers/scene_provider.dart';
+import '../utils/scene_icons.dart';
 
 /// Edit or create a scene: name, icon, color, and a list of device actions.
 ///
@@ -27,18 +28,7 @@ class _SceneEditorPageState extends State<SceneEditorPage> {
   late int _colorValue;
   late List<SceneAction> _actions;
 
-  static const List<_SceneIcon> _icons = [
-    _SceneIcon(Icons.home, 'Arrive Home'),
-    _SceneIcon(Icons.nightlight_round, 'Good Night'),
-    _SceneIcon(Icons.wb_sunny, 'Morning'),
-    _SceneIcon(Icons.movie, 'Movie'),
-    _SceneIcon(Icons.restaurant, 'Dinner'),
-    _SceneIcon(Icons.work, 'Away'),
-    _SceneIcon(Icons.bedtime, 'Sleep'),
-    _SceneIcon(Icons.weekend, 'Weekend'),
-    _SceneIcon(Icons.lightbulb, 'Lights'),
-    _SceneIcon(Icons.power_settings_new, 'Power'),
-  ];
+  static const List<SceneIcon> _icons = kSceneIcons;
 
   static const List<Color> _palette = [
     Colors.blue,
@@ -656,10 +646,4 @@ class _AddTimerActionDialogState extends State<_AddTimerActionDialog> {
       ],
     );
   }
-}
-
-class _SceneIcon {
-  final IconData icon;
-  final String label;
-  const _SceneIcon(this.icon, this.label);
 }
