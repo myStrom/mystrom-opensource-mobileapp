@@ -439,6 +439,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Put your device into AP mode (see instructions below). Then pick it from the list, or connect to its WiFi manually and tap \"I\'m already connected\".';
 
   @override
+  String get softApSelectApIntroManual =>
+      'Put your device into AP mode (see instructions below). Connect to its WiFi in your device settings, then return here and tap \"I\'m already connected\".';
+
+  @override
   String get scanForMyStromDevices => 'Scan for myStrom devices';
 
   @override

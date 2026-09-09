@@ -439,6 +439,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Versetzen Sie Ihr Gerät in den AP-Modus (siehe Anleitung unten). Wählen Sie es anschließend aus der Liste aus oder verbinden Sie sich manuell mit seinem WLAN und tippen Sie auf „Ich bin bereits verbunden“.';
 
   @override
+  String get softApSelectApIntroManual =>
+      'Versetzen Sie Ihr Gerät in den AP-Modus (siehe Anleitung unten). Verbinden Sie sich in den Systemeinstellungen mit seinem WLAN und tippen Sie anschließend hier auf „Ich bin bereits verbunden“.';
+
+  @override
   String get scanForMyStromDevices => 'Nach myStrom-Geräten suchen';
 
   @override
@@ -1348,6 +1352,10 @@ class AppLocalizationsDeCh extends AppLocalizationsDe {
   @override
   String get softApSelectApIntro =>
       'Versetzen Sie Ihr Gerät in den AP-Modus (siehe Anleitung unten). Wählen Sie es anschliessend aus der Liste aus oder verbinden Sie sich manuell mit seinem WLAN und tippen Sie auf «Ich bin bereits verbunden».';
+
+  @override
+  String get softApSelectApIntroManual =>
+      'Versetzen Sie Ihr Gerät in den AP-Modus (siehe Anleitung unten). Verbinden Sie sich in den Systemeinstellungen mit seinem WLAN und tippen Sie anschliessend hier auf «Ich bin bereits verbunden».';
 
   @override
   String get noMyStromApsFound =>

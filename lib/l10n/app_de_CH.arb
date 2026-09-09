@@ -12,6 +12,7 @@
   "apModeBulbResetStep2": "Der WPS-Modus läuft 3 Min. (weisses Blinken), danach startet der AP-Modus automatisch und läuft 5 Min.",
   "apModeLedWhite": "Weisses Blinken — das Gerät verbindet sich mit der Cloud.",
   "softApSelectApIntro": "Versetzen Sie Ihr Gerät in den AP-Modus (siehe Anleitung unten). Wählen Sie es anschliessend aus der Liste aus oder verbinden Sie sich manuell mit seinem WLAN und tippen Sie auf «Ich bin bereits verbunden».",
+  "softApSelectApIntroManual": "Versetzen Sie Ihr Gerät in den AP-Modus (siehe Anleitung unten). Verbinden Sie sich in den Systemeinstellungen mit seinem WLAN und tippen Sie anschliessend hier auf «Ich bin bereits verbunden».",
   "noMyStromApsFound": "Keine myStrom-APs gefunden.\n\n• Stellen Sie sicher, dass sich das Gerät im AP-Modus befindet.\n• Erteilen Sie die Standortberechtigung (Einstellungen → Apps → mystrom_local → Berechtigungen).\n• Schalten Sie den Standort (GPS) in den Systemeinstellungen ein — Android benötigt ihn für WLAN-Scans.\n• Falls Sie bereits mit dem Geräte-AP verbunden sind, tippen Sie unten auf «Ich bin bereits verbunden».",
   "deviceRebootingMessage": "Das Gerät startet neu und verbindet sich mit Ihrem WLAN. Es sollte innerhalb einer Minute im Tab «Gefunden» erscheinen.",
   "wpsSwitchStep1": "Die «+»-Taste 3 s gedrückt halten — die LED beginnt langsam weiss zu blinken.",

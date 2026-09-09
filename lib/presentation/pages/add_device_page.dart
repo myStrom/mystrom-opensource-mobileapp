@@ -381,7 +381,11 @@ class _SelectApStep extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text(l10n.softApSelectApIntro),
+        Text(
+          _hostApScanSupported
+              ? l10n.softApSelectApIntro
+              : l10n.softApSelectApIntroManual,
+        ),
         const SizedBox(height: 8),
         const _ApModeInstructions(),
         if (_hostApScanSupported) ...[

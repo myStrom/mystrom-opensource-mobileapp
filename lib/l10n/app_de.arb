@@ -122,6 +122,7 @@
   "apModeLedGreenSuccess": "3× grün — erfolgreich verbunden.",
   "apModeLedRedFailure": "3× rot — Verbindung fehlgeschlagen.",
   "softApSelectApIntro": "Versetzen Sie Ihr Gerät in den AP-Modus (siehe Anleitung unten). Wählen Sie es anschließend aus der Liste aus oder verbinden Sie sich manuell mit seinem WLAN und tippen Sie auf „Ich bin bereits verbunden“.",
+  "softApSelectApIntroManual": "Versetzen Sie Ihr Gerät in den AP-Modus (siehe Anleitung unten). Verbinden Sie sich in den Systemeinstellungen mit seinem WLAN und tippen Sie anschließend hier auf „Ich bin bereits verbunden“.",
   "scanForMyStromDevices": "Nach myStrom-Geräten suchen",
   "noMyStromApsFound": "Keine myStrom-APs gefunden.\n\n• Stellen Sie sicher, dass sich das Gerät im AP-Modus befindet.\n• Erteilen Sie die Standortberechtigung (Einstellungen → Apps → mystrom_local → Berechtigungen).\n• Schalten Sie den Standort (GPS) in den Systemeinstellungen ein — Android benötigt ihn für WLAN-Scans.\n• Falls Sie bereits mit dem Geräte-AP verbunden sind, tippen Sie unten auf „Ich bin bereits verbunden“.",
   "apCandidateSubtitle": "{displayName} • {signal} dBm",
