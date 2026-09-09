@@ -96,7 +96,11 @@ void main() {
     await openSoftApTab(tester);
 
     expect(find.text('Add Device'), findsOneWidget);
-    expect(find.byKey(const Key('softap_scan_aps')), findsOneWidget);
+    if (Platform.isAndroid) {
+      expect(find.byKey(const Key('softap_scan_aps')), findsOneWidget);
+    } else {
+      expect(find.byKey(const Key('softap_scan_aps')), findsNothing);
+    }
     expect(find.byKey(const Key('softap_manual_connected')), findsOneWidget);
   });
 

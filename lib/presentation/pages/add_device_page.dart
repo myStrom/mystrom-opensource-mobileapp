@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -16,6 +17,10 @@ import '../providers/provisioning_provider.dart';
 import '../utils/device_type_l10n.dart';
 import '../widgets/add_device_dialog.dart';
 import '../widgets/discovered_device_card.dart';
+
+/// Host-side WiFi AP scan is only available on Android (iOS has no API for it).
+bool get _hostApScanSupported =>
+    !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
 /// WiFi provisioning wizard (SoftAP + WPS) + discovered devices tab.
 /// See the API docs
@@ -379,47 +384,50 @@ class _SelectApStep extends StatelessWidget {
         Text(l10n.softApSelectApIntro),
         const SizedBox(height: 8),
         const _ApModeInstructions(),
-        const SizedBox(height: 16),
-        FilledButton.icon(
-          key: const Key('softap_scan_aps'),
-          icon: const Icon(Icons.wifi_find),
-          label: Text(l10n.scanForMyStromDevices),
-          onPressed: provider.busy ? null : provider.scanForAps,
-        ),
-        const SizedBox(height: 8),
-        if (provider.busy)
-          const Center(child: CircularProgressIndicator())
-        else if (provider.error != null)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Text(
-              _provisionErrorMessage(provider, l10n),
-              style: const TextStyle(color: Colors.red),
-            ),
-          )
-        else if (provider.apCandidates.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Text(
-              l10n.noMyStromApsFound,
-              style: const TextStyle(color: Colors.grey),
-            ),
-          )
-        else
-          for (final ap in provider.apCandidates)
-            ListTile(
-              key: Key('ap_candidate_${ap.ssid}'),
-              leading: Icon(_iconForType(ap.type), color: Colors.blue),
-              title: Text(ap.ssid),
-              subtitle: Text(
-                l10n.apCandidateSubtitle(
-                  ap.type.localizedName(l10n),
-                  ap.signal.toString(),
-                ),
+        if (_hostApScanSupported) ...[
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            key: const Key('softap_scan_aps'),
+            icon: const Icon(Icons.wifi_find),
+            label: Text(l10n.scanForMyStromDevices),
+            onPressed: provider.busy ? null : provider.scanForAps,
+          ),
+          const SizedBox(height: 8),
+          if (provider.busy)
+            const Center(child: CircularProgressIndicator())
+          else if (provider.error != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Text(
+                _provisionErrorMessage(provider, l10n),
+                style: const TextStyle(color: Colors.red),
               ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => provider.selectAp(ap),
-            ),
+            )
+          else if (provider.apCandidates.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Text(
+                l10n.noMyStromApsFound,
+                style: const TextStyle(color: Colors.grey),
+              ),
+            )
+          else
+            for (final ap in provider.apCandidates)
+              ListTile(
+                key: Key('ap_candidate_${ap.ssid}'),
+                leading: Icon(_iconForType(ap.type), color: Colors.blue),
+                title: Text(ap.ssid),
+                subtitle: Text(
+                  l10n.apCandidateSubtitle(
+                    ap.type.localizedName(l10n),
+                    ap.signal.toString(),
+                  ),
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => provider.selectAp(ap),
+              ),
+        ] else
+          const SizedBox(height: 16),
         const Divider(),
         TextButton.icon(
           key: const Key('softap_manual_connected'),
