@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 /// Simple sparkline / bar chart for recent power readings.
 class PowerChartWidget extends StatelessWidget {
   const PowerChartWidget({
@@ -13,10 +15,11 @@ class PowerChartWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (readings.isEmpty) {
-      return const SizedBox(
+      return SizedBox(
         height: 80,
-        child: Center(child: Text('No power data')),
+        child: Center(child: Text(l10n.noPowerData)),
       );
     }
     final max = maxValue ?? readings.reduce((a, b) => a > b ? a : b);

@@ -7,7 +7,10 @@ import '../../core/network/device_http_client.dart';
 import '../../core/utils/device_type.dart';
 import '../../data/datasources/device_remote_ds.dart';
 import '../../domain/entities/device_entity.dart';
+import '../../l10n/app_localizations.dart';
 import '../providers/device_provider.dart';
+import '../utils/device_type_l10n.dart';
+import '../utils/number_format.dart';
 
 /// Compact device card showing name, icon, online status, and live state.
 ///
@@ -50,7 +53,8 @@ class DeviceStatusCard extends StatefulWidget {
 class _DeviceStatusCardState extends State<DeviceStatusCard> {
   late final DeviceRemoteDataSource _remote;
   bool _active = false;
-  String? _statusText;
+  int? _dimmerValue;
+  int? _batteryPercent;
   String? _sensorText;
   bool _loading = true;
   Timer? _pollTimer;
@@ -79,14 +83,14 @@ class _DeviceStatusCardState extends State<DeviceStatusCard> {
     super.dispose();
   }
 
-  /// Immediately update the active state and status text after a
-  /// successful API action (e.g. toggle relay).  Also triggers a
-  /// full state refresh shortly after to sync sensor data.
-  void updateActiveState({required bool active, String? statusText}) {
+  /// Immediately update the active state after a successful API action
+  /// (e.g. toggle relay). Also triggers a full state refresh shortly
+  /// after to sync sensor data.
+  void updateActiveState({required bool active, int? dimmerValue}) {
     if (!mounted) return;
     setState(() {
       _active = active;
-      if (statusText != null) _statusText = statusText;
+      if (dimmerValue != null) _dimmerValue = dimmerValue;
     });
     // Refresh full state after a short delay to sync sensors.
     Timer(const Duration(seconds: 2), _fetchState);
@@ -94,55 +98,56 @@ class _DeviceStatusCardState extends State<DeviceStatusCard> {
 
   /// Toggle the device on/off directly from the card.
   Future<void> _toggle() async {
+    final l10n = AppLocalizations.of(context);
     final ip = widget.device.bestIp;
     if (ip == null) {
-      _snack('No IP address for this device.');
+      _snack(l10n.noIpForDevice);
       return;
     }
     final d = widget.device;
     if (d.lockable) {
-      _snack('This device is locked — on/off toggle is disabled.');
+      _snack(l10n.deviceLockedToggleDisabled);
       return;
     }
     if (d.isOffline) {
-      _snack('Device is offline. Make sure it is powered on and connected.');
+      _snack(l10n.deviceOffline);
       return;
     }
     try {
       if (d.type.isSwitch) {
         final s = await _remote.toggleRelay(ip);
-        updateActiveState(active: s.relay, statusText: s.relay ? 'On' : 'Off');
+        updateActiveState(active: s.relay);
       } else if (d.type.isStrip) {
         final s = await _remote.getStripState(ip);
         if (s.on) {
           await _remote.setStripState(ip, action: 'off');
-          updateActiveState(active: false, statusText: 'Off');
+          updateActiveState(active: false);
         } else {
           await _remote.setStripState(ip, action: 'on');
-          updateActiveState(active: true, statusText: 'On');
+          updateActiveState(active: true);
         }
       } else if (d.type.isDimmer) {
         final s = await _remote.getDimmerState(ip);
         if (s.on) {
           await _remote.setDimmerState(ip, action: 'off');
-          updateActiveState(active: false, statusText: 'Off');
+          updateActiveState(active: false);
         } else {
           await _remote.setDimmerState(ip, action: 'on');
-          updateActiveState(active: true, statusText: 'On');
+          updateActiveState(active: true, dimmerValue: s.value);
         }
       } else if (d.type.isBulb) {
         final s = await _remote.getBulbState(ip);
         if (s.on) {
           await _remote.setBulbState(ip, action: 'off');
-          updateActiveState(active: false, statusText: 'Off');
+          updateActiveState(active: false);
         } else {
           await _remote.setBulbState(ip, action: 'on');
-          updateActiveState(active: true, statusText: 'On');
+          updateActiveState(active: true);
         }
       }
     } catch (e) {
       // Show the user why nothing happened; next poll corrects the state.
-      _snack('Could not reach device: $e');
+      _snack(l10n.couldNotReachDevice(e.toString()));
     }
   }
 
@@ -161,6 +166,34 @@ class _DeviceStatusCardState extends State<DeviceStatusCard> {
   /// Whether the on/off toggle is allowed (not locked).
   bool get _toggleAllowed => !widget.device.lockable;
 
+  String? _statusLabel(AppLocalizations l10n) {
+    final d = widget.device;
+    if (d.type.isSwitch || d.type.isStrip || d.type.isBulb) {
+      return _active ? l10n.on : l10n.off;
+    }
+    if (d.type.isDimmer) {
+      if (!_active) return l10n.off;
+      if (_dimmerValue != null) {
+        return l10n.statusOnPercent(_dimmerValue.toString());
+      }
+      return l10n.on;
+    }
+    if (d.type.isPir) {
+      return _active ? l10n.statusMotion : l10n.statusIdle;
+    }
+    if (d.type.isButton) {
+      if (d.type == DeviceType.bp2 ||
+          d.type == DeviceType.bp1 ||
+          d.type == DeviceType.bm1) {
+        return _batteryPercent != null
+            ? l10n.percentValue('$_batteryPercent')
+            : null;
+      }
+      return l10n.statusButton;
+    }
+    return null;
+  }
+
   Future<void> _fetchState() async {
     final ip = widget.device.bestIp;
     if (ip == null) {
@@ -169,19 +202,23 @@ class _DeviceStatusCardState extends State<DeviceStatusCard> {
     }
     try {
       final d = widget.device;
+      final l10n = AppLocalizations.of(context);
+      final number = decimalFormat(Localizations.localeOf(context), 1);
+      final integer = decimalFormat(Localizations.localeOf(context), 0);
       if (d.type.isSwitch) {
         final s = await _remote.getReport(ip);
         if (!mounted) return;
         setState(() {
           _active = s.relay;
-          _statusText = s.relay ? 'On' : 'Off';
           // Show temperature whenever available (also when relay is off),
           // and power only when the device actually draws current.
           final parts = <String>[
             if (s.temperature != null)
-              '${(s.temperature! + d.temperatureOffset).toStringAsFixed(1)}°C',
+              l10n.temperatureCelsius(
+                number.format(s.temperature! + d.temperatureOffset),
+              ),
             if (s.power != null && s.power! > 0)
-              '${s.power!.toStringAsFixed(1)} W',
+              l10n.powerWatts(number.format(s.power!)),
           ];
           _sensorText = parts.isEmpty ? null : parts.join(' • ');
           _loading = false;
@@ -193,7 +230,6 @@ class _DeviceStatusCardState extends State<DeviceStatusCard> {
         if (!mounted) return;
         setState(() {
           _active = s.on;
-          _statusText = s.on ? 'On' : 'Off';
           _loading = false;
         });
       } else if (d.type.isDimmer) {
@@ -201,7 +237,7 @@ class _DeviceStatusCardState extends State<DeviceStatusCard> {
         if (!mounted) return;
         setState(() {
           _active = s.on;
-          _statusText = s.on ? 'On ${s.value}%' : 'Off';
+          _dimmerValue = s.value;
           _loading = false;
         });
       } else if (d.type.isBulb) {
@@ -209,7 +245,6 @@ class _DeviceStatusCardState extends State<DeviceStatusCard> {
         if (!mounted) return;
         setState(() {
           _active = s.on;
-          _statusText = s.on ? 'On' : 'Off';
           _loading = false;
         });
       } else if (d.type.isPir) {
@@ -217,11 +252,13 @@ class _DeviceStatusCardState extends State<DeviceStatusCard> {
         if (!mounted) return;
         setState(() {
           _active = s.motion;
-          _statusText = s.motion ? 'Motion' : 'Idle';
           _sensorText = [
             if (s.temperature != null)
-              '${(s.temperature! + d.temperatureOffset).toStringAsFixed(1)}°C',
-            if (s.lightLux != null) '${s.lightLux!.toStringAsFixed(0)} lx',
+              l10n.temperatureCelsius(
+                number.format(s.temperature! + d.temperatureOffset),
+              ),
+            if (s.lightLux != null)
+              '${integer.format(s.lightLux!)} ${l10n.unitLux}',
           ].join(' • ');
           _loading = false;
         });
@@ -232,18 +269,20 @@ class _DeviceStatusCardState extends State<DeviceStatusCard> {
           final s = await _remote.getButtonSeSensors(ip);
           if (!mounted) return;
           setState(() {
-            _statusText = '${s.battery?.percent ?? '?'}%';
+            _batteryPercent = s.battery?.percent;
             _sensorText = [
               if (s.temperature != null)
-                '${(s.temperature! + d.temperatureOffset).toStringAsFixed(1)}°C',
-              if (s.humidity != null) '${s.humidity!.toStringAsFixed(0)}%',
+                l10n.temperatureCelsius(
+                  number.format(s.temperature! + d.temperatureOffset),
+                ),
+              if (s.humidity != null)
+                l10n.percentValue(integer.format(s.humidity!)),
             ].join(' • ');
             _loading = false;
           });
         } else {
           if (!mounted) return;
           setState(() {
-            _statusText = 'Button';
             _loading = false;
           });
         }
@@ -255,6 +294,7 @@ class _DeviceStatusCardState extends State<DeviceStatusCard> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final d = widget.device;
     final offline = d.isOffline;
     final theme = Theme.of(context);
@@ -295,18 +335,18 @@ class _DeviceStatusCardState extends State<DeviceStatusCard> {
     // Subtitle line: location/room + sensor data (if any).
     String subtitle;
     if (offline) {
-      subtitle = 'offline';
+      subtitle = l10n.offline;
     } else if (!widget.showState) {
-      subtitle = d.type.displayName;
+      subtitle = d.type.localizedName(l10n);
     } else if (_loading) {
-      subtitle = '...';
+      subtitle = l10n.loadingEllipsis;
     } else {
       final parts = <String>[
         if (d.room?.isNotEmpty ?? false) d.room!,
-        ?_statusText,
+        ?_statusLabel(l10n),
         ?_sensorText,
       ];
-      subtitle = parts.isEmpty ? d.type.displayName : parts.join(' • ');
+      subtitle = parts.isEmpty ? d.type.localizedName(l10n) : parts.join(' • ');
     }
 
     // Whether to show the power toggle button (top-right).

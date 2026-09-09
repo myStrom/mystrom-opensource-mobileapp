@@ -6,6 +6,7 @@ import '../../data/datasources/device_remote_ds.dart';
 import '../../data/repositories/action_config_repository.dart';
 import '../../domain/entities/device_entity.dart';
 import '../../domain/usecases/configure_button_action.dart';
+import '../../l10n/app_localizations.dart';
 import '../providers/device_provider.dart';
 import '../widgets/action_url_picker.dart';
 import 'device_settings_page.dart';
@@ -25,19 +26,18 @@ class _ButtonDetailPageState extends State<ButtonDetailPage> {
 
   static const _schemes = ['single', 'double', 'long', 'touch', 'generic'];
 
-  /// Human-readable label for a scheme.
-  static String _schemeLabel(String scheme) {
+  static String _schemeLabel(AppLocalizations l10n, String scheme) {
     switch (scheme) {
       case 'single':
-        return 'Single press';
+        return l10n.singlePress;
       case 'double':
-        return 'Double press';
+        return l10n.doublePress;
       case 'long':
-        return 'Long press';
+        return l10n.longPress;
       case 'touch':
-        return 'Touch';
+        return l10n.touch;
       case 'generic':
-        return 'Generic';
+        return l10n.generic;
       default:
         return scheme[0].toUpperCase() + scheme.substring(1);
     }
@@ -58,6 +58,7 @@ class _ButtonDetailPageState extends State<ButtonDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final devices = context.watch<DeviceProvider>().devices;
     return Scaffold(
       appBar: AppBar(
@@ -71,7 +72,7 @@ class _ButtonDetailPageState extends State<ButtonDetailPage> {
           IconButton(
             key: const Key('button_settings_button'),
             icon: const Icon(Icons.settings),
-            tooltip: 'Settings',
+            tooltip: l10n.settingsTooltip,
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -84,23 +85,23 @@ class _ButtonDetailPageState extends State<ButtonDetailPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Text(
-            'Action URLs',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          Text(
+            l10n.actionUrls,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Tap a scheme to configure which device/action is triggered.',
-            style: TextStyle(fontSize: 12, color: Colors.grey),
+          Text(
+            l10n.actionUrlsSubtitle,
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
           ),
           const SizedBox(height: 16),
           for (final scheme in _schemes)
             Card(
               key: Key('button_scheme_$scheme'),
               child: ListTile(
-                title: Text(_schemeLabel(scheme)),
+                title: Text(_schemeLabel(l10n, scheme)),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => _configure(scheme, devices),
+                onTap: () => _configure(scheme, devices, l10n),
               ),
             ),
         ],
@@ -108,7 +109,11 @@ class _ButtonDetailPageState extends State<ButtonDetailPage> {
     );
   }
 
-  void _configure(String scheme, List<DeviceEntity> devices) async {
+  void _configure(
+    String scheme,
+    List<DeviceEntity> devices,
+    AppLocalizations l10n,
+  ) async {
     if (widget.device.bestIp == null) return;
     final url = await showDialog<String>(
       context: context,
@@ -124,7 +129,7 @@ class _ButtonDetailPageState extends State<ButtonDetailPage> {
         scheme: scheme,
         url: url,
       );
-      _snack('$scheme → $url');
+      _snack(l10n.schemeUrlSaved(scheme, url));
     } catch (e) {
       _snack(e.toString());
     }

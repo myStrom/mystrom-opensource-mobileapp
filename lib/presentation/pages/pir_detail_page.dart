@@ -5,6 +5,8 @@ import '../../data/datasources/device_remote_ds.dart';
 import '../../data/models/pir_state.dart';
 import '../../domain/entities/device_entity.dart';
 import '../../domain/usecases/read_sensors.dart';
+import '../../l10n/app_localizations.dart';
+import '../utils/number_format.dart';
 import '../widgets/sensor_card.dart';
 import 'device_settings_page.dart';
 import 'scheduler_page.dart';
@@ -23,6 +25,7 @@ class _PirDetailPageState extends State<PirDetailPage> {
   late final ReadSensors _sensors;
   PirStateModel? _state;
   bool _loading = true;
+  bool _noIpError = false;
   String? _error;
 
   @override
@@ -39,13 +42,15 @@ class _PirDetailPageState extends State<PirDetailPage> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'No IP address';
+        _noIpError = true;
+        _error = null;
       });
       return;
     }
     if (!mounted) return;
     setState(() {
       _loading = true;
+      _noIpError = false;
       _error = null;
     });
     try {
@@ -66,6 +71,7 @@ class _PirDetailPageState extends State<PirDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -78,7 +84,7 @@ class _PirDetailPageState extends State<PirDetailPage> {
           IconButton(
             key: const Key('pir_scheduler_button'),
             icon: const Icon(Icons.schedule),
-            tooltip: 'Scheduler',
+            tooltip: l10n.schedulerTooltip,
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -89,7 +95,7 @@ class _PirDetailPageState extends State<PirDetailPage> {
           IconButton(
             key: const Key('detail_settings_button'),
             icon: const Icon(Icons.settings),
-            tooltip: 'Settings',
+            tooltip: l10n.settingsTooltip,
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -105,12 +111,12 @@ class _PirDetailPageState extends State<PirDetailPage> {
           padding: const EdgeInsets.all(16),
           children: [
             if (_loading) const Center(child: CircularProgressIndicator()),
-            if (_error != null)
+            if (_noIpError || _error != null)
               Card(
                 color: Colors.red.shade100,
                 child: Padding(
                   padding: const EdgeInsets.all(12),
-                  child: Text(_error!),
+                  child: Text(_noIpError ? l10n.noIpAddress : _error!),
                 ),
               ),
             Wrap(
@@ -118,25 +124,27 @@ class _PirDetailPageState extends State<PirDetailPage> {
               runSpacing: 12,
               children: [
                 SensorCard(
-                  label: 'Motion',
-                  value: _state?.motion == true ? 'Yes' : 'No',
+                  label: l10n.motion,
+                  value: _state?.motion == true ? l10n.yes : l10n.no,
                   icon: _state?.motion == true
                       ? Icons.directions_run
                       : Icons.nightlight_round,
                 ),
                 if (_state?.lightLux != null)
                   SensorCard(
-                    label: 'Light',
-                    value: _state!.lightLux!.toStringAsFixed(1),
-                    unit: 'lux',
+                    label: l10n.light,
+                    value: formatDecimal(context, _state!.lightLux!, 1),
+                    unit: l10n.unitLux,
                     icon: Icons.wb_sunny,
                   ),
                 if (_state?.temperature != null)
                   SensorCard(
-                    label: 'Temperature',
-                    value:
-                        (_state!.temperature! + widget.device.temperatureOffset)
-                            .toStringAsFixed(1),
+                    label: l10n.temperature,
+                    value: formatDecimal(
+                      context,
+                      _state!.temperature! + widget.device.temperatureOffset,
+                      1,
+                    ),
                     unit: '°C',
                     icon: Icons.thermostat,
                   ),

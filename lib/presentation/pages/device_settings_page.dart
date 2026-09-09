@@ -7,7 +7,11 @@ import '../../data/datasources/device_remote_ds.dart';
 import '../../data/models/device_info.dart';
 import '../../domain/entities/device_entity.dart';
 import '../../domain/usecases/identify_device.dart';
+import '../../l10n/app_localizations.dart';
 import '../providers/device_provider.dart';
+import '../utils/action_l10n.dart';
+import '../utils/device_type_l10n.dart';
+import '../utils/number_format.dart';
 import '../widgets/action_url_picker.dart';
 import 'strip_settings_page.dart';
 
@@ -33,6 +37,7 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
   double _tempOffset = 0;
   DeviceInfoModel? _info;
   bool _loadingInfo = true;
+  bool _noIp = false;
   String? _infoError;
 
   @override
@@ -61,7 +66,7 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
     if (ip == null) {
       setState(() {
         _loadingInfo = false;
-        _infoError = 'No IP address';
+        _noIp = true;
       });
       return;
     }
@@ -86,9 +91,10 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 
   Future<void> _identify(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final ip = widget.device.bestIp;
     if (ip == null) {
-      _snack('No IP address');
+      _snack(l10n.noIpAddress);
       return;
     }
     final remote = DeviceRemoteDataSource(
@@ -99,7 +105,7 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
       deviceType: widget.device.type,
       mac: widget.device.mac,
     );
-    _snack('Identification signal sent — look for a blink.');
+    _snack(l10n.identifySignalSent);
   }
 
   static const List<Color> _palette = [
@@ -126,6 +132,7 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final d = widget.device;
     return PopScope(
       canPop: false,
@@ -151,16 +158,16 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
           padding: const EdgeInsets.all(16),
           children: [
             // ---- Name & Room ----
-            const Text(
-              'Device name',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            Text(
+              l10n.deviceNameSection,
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             TextField(
               key: const Key('settings_name_field'),
               controller: _nameController,
               decoration: InputDecoration(
-                labelText: 'Custom name',
+                labelText: l10n.customName,
                 hintText: d.name,
                 border: const OutlineInputBorder(),
               ),
@@ -169,18 +176,18 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
             TextField(
               key: const Key('settings_room_field'),
               controller: _roomController,
-              decoration: const InputDecoration(
-                labelText: 'Room',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.room,
+                border: const OutlineInputBorder(),
               ),
             ),
             SwitchListTile(
               key: const Key('settings_favorite_switch'),
               contentPadding: EdgeInsets.zero,
-              title: const Text('Favorite'),
-              subtitle: const Text(
-                'Show this device under the "Favorite" category on the dashboard.',
-                style: TextStyle(fontSize: 12),
+              title: Text(l10n.favorite),
+              subtitle: Text(
+                l10n.favoriteSubtitle,
+                style: const TextStyle(fontSize: 12),
               ),
               value: _favorite,
               onChanged: (v) => setState(() => _favorite = v),
@@ -192,11 +199,10 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
               SwitchListTile(
                 key: const Key('settings_lockable_switch'),
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Lock on/off'),
-                subtitle: const Text(
-                  'Disable the on/off toggle (e.g. for a fridge). '
-                  'Timers and scheduler are still allowed.',
-                  style: TextStyle(fontSize: 12),
+                title: Text(l10n.lockOnOff),
+                subtitle: Text(
+                  l10n.lockOnOffSubtitle,
+                  style: const TextStyle(fontSize: 12),
                 ),
                 value: _lockable,
                 onChanged: (v) => setState(() => _lockable = v),
@@ -207,10 +213,12 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
               const SizedBox(height: 16),
               Row(
                 children: [
-                  const Expanded(child: Text('Temperature offset')),
+                  Expanded(child: Text(l10n.temperatureOffset)),
                   Text(
-                    '${_tempOffset >= 0 ? '+' : ''}'
-                    '${_tempOffset.toStringAsFixed(1)} °C',
+                    l10n.temperatureOffsetValue(
+                      _tempOffset >= 0 ? '+' : '',
+                      formatDecimal(context, _tempOffset, 1),
+                    ),
                   ),
                 ],
               ),
@@ -220,7 +228,9 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
                 max: 30,
                 divisions: 600,
                 value: _tempOffset,
-                label: '${_tempOffset.toStringAsFixed(1)} °C',
+                label: l10n.temperatureCelsius(
+                  formatDecimal(context, _tempOffset, 1),
+                ),
                 onChanged: (v) =>
                     setState(() => _tempOffset = (v * 10).round() / 10),
               ),
@@ -229,14 +239,14 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
             // ---- Tile color ----
             const SizedBox(height: 24),
             const Divider(),
-            const Text(
-              'Tile color',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            Text(
+              l10n.tileColor,
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
-            const Text(
-              'Helps tell this device apart from others on the dashboard.',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+            Text(
+              l10n.tileColorSubtitle,
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
             const SizedBox(height: 12),
             Wrap(
@@ -299,8 +309,8 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
               ListTile(
                 key: const Key('settings_strip_settings_tile'),
                 leading: const Icon(Icons.tune),
-                title: const Text('Strip channel mode'),
-                subtitle: const Text('Configure colors / channels / cold_warm'),
+                title: Text(l10n.stripChannelMode),
+                subtitle: Text(l10n.stripChannelModeSubtitle),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.push(
                   context,
@@ -318,15 +328,14 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
                 d.type == DeviceType.wsx) ...[
               const SizedBox(height: 24),
               const Divider(),
-              const Text(
-                'Button action',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              Text(
+                l10n.buttonAction,
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
-              const Text(
-                'Choose which device/action the switch triggers when its '
-                'physical button is pressed.',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
+              Text(
+                l10n.buttonActionSubtitle,
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
               ),
               const SizedBox(height: 8),
               _ButtonActionSection(device: d),
@@ -338,15 +347,14 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
             if (d.type == DeviceType.wms) ...[
               const SizedBox(height: 24),
               const Divider(),
-              const Text(
-                'PIR actions',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              Text(
+                l10n.pirActions,
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
-              const Text(
-                'Choose which device/action the PIR triggers for each '
-                'condition (motion detected at different light levels).',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
+              Text(
+                l10n.pirActionsSubtitle,
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
               ),
               const SizedBox(height: 8),
               _PirActionSection(device: d),
@@ -375,10 +383,8 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
               ListTile(
                 key: const Key('settings_identify_tile'),
                 leading: const Icon(Icons.bubble_chart),
-                title: const Text('Identify'),
-                subtitle: const Text(
-                  'Blink the device so you can tell which one it is.',
-                ),
+                title: Text(l10n.identify),
+                subtitle: Text(l10n.identifySubtitle),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => _identify(context),
               ),
@@ -387,13 +393,21 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
             // ---- Device info from /info ----
             const SizedBox(height: 24),
             const Divider(),
-            const Text(
-              'Device info',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            Text(
+              l10n.deviceInfo,
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             if (_loadingInfo)
               const Center(child: CircularProgressIndicator())
+            else if (_noIp)
+              Card(
+                color: Colors.red.shade100,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Text(l10n.noIpAddress),
+                ),
+              )
             else if (_infoError != null)
               Card(
                 color: Colors.red.shade100,
@@ -403,27 +417,29 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
                 ),
               )
             else if (_info != null)
-              _buildInfoSection(d, _info!)
+              _buildInfoSection(l10n, d, _info!)
             else
-              const Text('No info available'),
+              Text(l10n.noInfoAvailable),
 
             // ---- Static info from local DB ----
             const SizedBox(height: 24),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.info),
-              title: const Text('MAC'),
+              title: Text(l10n.mac),
               subtitle: Text(d.mac),
             ),
             ListTile(
               leading: const Icon(Icons.category),
-              title: const Text('Type'),
-              subtitle: Text('${d.type.model} — ${d.type.displayName}'),
+              title: Text(l10n.type),
+              subtitle: Text(
+                l10n.typeSubtitle(d.type.model, d.type.localizedName(l10n)),
+              ),
             ),
             ListTile(
               leading: const Icon(Icons.router),
-              title: const Text('IP'),
-              subtitle: Text(d.bestIp ?? 'unknown'),
+              title: Text(l10n.ip),
+              subtitle: Text(d.bestIp ?? l10n.unknown),
             ),
 
             // ---- Save (name + room + color + favorite) ----
@@ -439,9 +455,9 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
                 Navigator.pop(context);
               },
               icon: const Icon(Icons.delete, color: Colors.red),
-              label: const Text(
-                'Remove device',
-                style: TextStyle(color: Colors.red),
+              label: Text(
+                l10n.removeDevice,
+                style: const TextStyle(color: Colors.red),
               ),
             ),
           ],
@@ -457,10 +473,10 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
             provider.setFavorite(d.mac, _favorite);
             provider.setLockable(d.mac, _lockable);
             provider.setTemperatureOffset(d.mac, _tempOffset);
-            _snack('Saved');
+            _snack(l10n.saved);
           },
           icon: const Icon(Icons.save),
-          label: const Text('Save'),
+          label: Text(l10n.save),
         ),
       ),
     );
@@ -479,22 +495,21 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
   }
 
   Future<bool> _confirmDiscard(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     return await showDialog<bool>(
           context: context,
           builder: (_) => AlertDialog(
-            title: const Text('Discard changes?'),
-            content: const Text(
-              'You have unsaved changes. Are you sure you want to quit without saving?',
-            ),
+            title: Text(l10n.discardChangesTitle),
+            content: Text(l10n.discardChangesMessage),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
+                child: Text(l10n.cancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(context, true),
                 style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text('Quit without saving'),
+                child: Text(l10n.quitWithoutSaving),
               ),
             ],
           ),
@@ -502,27 +517,60 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
         false;
   }
 
-  Widget _buildInfoSection(DeviceEntity d, DeviceInfoModel info) {
+  Widget _buildInfoSection(
+    AppLocalizations l10n,
+    DeviceEntity d,
+    DeviceInfoModel info,
+  ) {
     final cs = info.connectionStatus;
     return Column(
       children: [
         if (info.version.isNotEmpty)
-          _infoTile(Icons.code, 'Firmware', info.version),
-        if (info.ssid.isNotEmpty) _infoTile(Icons.wifi, 'WiFi SSID', info.ssid),
+          _infoTile(Icons.code, l10n.firmware, info.version),
+        if (info.ssid.isNotEmpty)
+          _infoTile(Icons.wifi, l10n.wifiSsid, info.ssid),
         if (info.ip.isNotEmpty || info.mask.isNotEmpty)
-          _infoTile(Icons.router, 'IP / Mask', '${info.ip} / ${info.mask}'),
+          _infoTile(
+            Icons.router,
+            l10n.ipMask,
+            l10n.ipMaskValue(info.ip, info.mask),
+          ),
         if (info.gw.isNotEmpty || info.dns.isNotEmpty)
-          _infoTile(Icons.dns, 'Gateway / DNS', '${info.gw} / ${info.dns}'),
+          _infoTile(
+            Icons.dns,
+            l10n.gatewayDns,
+            l10n.gatewayDnsValue(info.gw, info.dns),
+          ),
         _infoTile(
           Icons.cloud_done,
-          'Connection',
-          info.connected ? 'Connected' : 'Disconnected',
+          l10n.connection,
+          info.connected ? l10n.connected : l10n.disconnected,
         ),
-        _infoTile(Icons.sync, 'Roaming', info.roaming ? 'Enabled' : 'Disabled'),
-        _infoTile(Icons.network_check, 'NTP', cs.ntp ? 'OK' : 'Failed'),
-        _infoTile(Icons.dns_outlined, 'DNS', cs.dns ? 'OK' : 'Failed'),
-        _infoTile(Icons.handshake, 'Handshake', cs.handshake ? 'OK' : 'Failed'),
-        _infoTile(Icons.login, 'Login', cs.login ? 'OK' : 'Failed'),
+        _infoTile(
+          Icons.sync,
+          l10n.roaming,
+          info.roaming ? l10n.enabled : l10n.disabled,
+        ),
+        _infoTile(
+          Icons.network_check,
+          l10n.ntp,
+          cs.ntp ? l10n.ok : l10n.failed,
+        ),
+        _infoTile(
+          Icons.dns_outlined,
+          l10n.dns,
+          cs.dns ? l10n.ok : l10n.failed,
+        ),
+        _infoTile(
+          Icons.handshake,
+          l10n.handshake,
+          cs.handshake ? l10n.ok : l10n.failed,
+        ),
+        _infoTile(
+          Icons.login,
+          l10n.login,
+          cs.login ? l10n.ok : l10n.failed,
+        ),
       ],
     );
   }
@@ -641,28 +689,35 @@ class _SingleButtonActionTileState extends State<_SingleButtonActionTile> {
       await remote.setLcsButtonAction(ip, url);
       if (!mounted) return;
       setState(() => _currentUrl = url);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Button action saved: $url')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).buttonActionSaved(url),
+          ),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Save failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).saveFailed(e.toString())),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ListTile(
       leading: const Icon(Icons.touch_app),
-      title: const Text('Button action'),
+      title: Text(l10n.buttonAction),
       subtitle: Text(
         _loading
-            ? 'Loading...'
+            ? l10n.loading
             : (_currentUrl != null && _currentUrl!.isNotEmpty
                   ? _currentUrl!
-                  : 'Not configured'),
+                  : l10n.notConfigured),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
@@ -742,24 +797,27 @@ class _SwitchSlotActionTileState extends State<_SwitchSlotActionTile> {
       }
       if (!mounted) return;
       setState(() => _currentUrl = url);
+      final l10n = AppLocalizations.of(context);
+      final slotLabel = widget.slot == 'on' ? l10n.on : l10n.off;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${widget.slot.toUpperCase()} action saved: $url'),
-        ),
+        SnackBar(content: Text(l10n.slotActionSaved(slotLabel, url))),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Save failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).saveFailed(e.toString())),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final label = widget.slot == 'on'
-        ? 'When relay turns ON'
-        : 'When relay turns OFF';
+        ? l10n.whenRelayTurnsOn
+        : l10n.whenRelayTurnsOff;
     return ListTile(
       leading: Icon(
         widget.slot == 'on' ? Icons.power_settings_new : Icons.power_off,
@@ -767,10 +825,10 @@ class _SwitchSlotActionTileState extends State<_SwitchSlotActionTile> {
       title: Text(label),
       subtitle: Text(
         _loading
-            ? 'Loading...'
+            ? l10n.loading
             : (_currentUrl != null && _currentUrl!.isNotEmpty
                   ? _currentUrl!
-                  : 'Not configured'),
+                  : l10n.notConfigured),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
@@ -795,14 +853,14 @@ class _PirActionSection extends StatefulWidget {
 }
 
 class _PirActionSectionState extends State<_PirActionSection> {
-  /// Ordered PIR condition slots with human-readable labels.
-  static const _slots = <(String, String, IconData)>[
-    ('generic', 'Generic (any motion)', Icons.sensors),
-    ('night', 'Night (dark)', Icons.nightlight),
-    ('twilight', 'Twilight (dawn/dusk)', Icons.brightness_3),
-    ('day', 'Day (bright)', Icons.wb_sunny),
-    ('rise', 'Motion begins', Icons.notifications_active),
-    ('fall', 'Motion ends', Icons.notifications_off),
+  /// Ordered PIR condition slots.
+  static const _slots = <(String, IconData)>[
+    ('generic', Icons.sensors),
+    ('night', Icons.nightlight),
+    ('twilight', Icons.brightness_3),
+    ('day', Icons.wb_sunny),
+    ('rise', Icons.notifications_active),
+    ('fall', Icons.notifications_off),
   ];
 
   Map<String, String> _urls = {};
@@ -855,19 +913,27 @@ class _PirActionSectionState extends State<_PirActionSection> {
       await remote.setPirAction(ip, slot, url: url);
       if (!mounted) return;
       setState(() => _urls[slot] = url);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('$slot action saved: $url')));
+      final l10n = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.slotActionSaved(localizedPirSlotLabel(l10n, slot), url),
+          ),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Save failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).saveFailed(e.toString())),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (_loading) {
       return const Padding(
         padding: EdgeInsets.all(16),
@@ -876,10 +942,10 @@ class _PirActionSectionState extends State<_PirActionSection> {
     }
     return Column(
       children: [
-        for (final (slot, label, icon) in _slots)
+        for (final (slot, icon) in _slots)
           _PirSlotActionTile(
             key: Key('pir_action_${slot}_tile'),
-            label: label,
+            label: localizedPirSlotLabel(l10n, slot),
             icon: icon,
             url: _urls[slot] ?? '',
             onTap: () => _pick(slot),
@@ -906,11 +972,12 @@ class _PirSlotActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ListTile(
       leading: Icon(icon),
       title: Text(label),
       subtitle: Text(
-        url.isNotEmpty ? url : 'Not configured',
+        url.isNotEmpty ? url : l10n.notConfigured,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
@@ -978,7 +1045,7 @@ class _PirThresholdsSectionState extends State<_PirThresholdsSection> {
     if (ip == null || _night == null || _day == null) return;
     if (_night! >= _day!) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Night threshold must be below day')),
+        SnackBar(content: Text(AppLocalizations.of(context).nightThresholdBelowDay)),
       );
       return;
     }
@@ -996,19 +1063,22 @@ class _PirThresholdsSectionState extends State<_PirThresholdsSection> {
         _night = t.night;
         _day = t.day;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Thresholds saved')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).thresholdsSaved)),
+      );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Save failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).saveFailed(e.toString())),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (_loading) {
       return const Padding(
         padding: EdgeInsets.all(16),
@@ -1032,19 +1102,17 @@ class _PirThresholdsSectionState extends State<_PirThresholdsSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Light thresholds',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        Text(
+          l10n.lightThresholds,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 4),
-        const Text(
-          'Night and day light boundaries the PIR uses to classify motion '
-          'events. Values share the same scale as the light sensor. '
-          'Night must be below day.',
-          style: TextStyle(fontSize: 12, color: Colors.grey),
+        Text(
+          l10n.lightThresholdsSubtitle,
+          style: const TextStyle(fontSize: 12, color: Colors.grey),
         ),
         const SizedBox(height: 16),
-        Text('Night: $night'),
+        Text(l10n.nightValue(night.toString())),
         Slider(
           key: const Key('pir_threshold_night_slider'),
           min: 0,
@@ -1054,7 +1122,7 @@ class _PirThresholdsSectionState extends State<_PirThresholdsSection> {
           label: night.toString(),
           onChanged: (v) => setState(() => _night = v.round()),
         ),
-        Text('Day: $day'),
+        Text(l10n.dayValue(day.toString())),
         Slider(
           key: const Key('pir_threshold_day_slider'),
           min: 0,
@@ -1069,7 +1137,7 @@ class _PirThresholdsSectionState extends State<_PirThresholdsSection> {
           key: const Key('pir_threshold_save_button'),
           onPressed: _save,
           icon: const Icon(Icons.save),
-          label: const Text('Save thresholds'),
+          label: Text(l10n.saveThresholds),
         ),
       ],
     );
@@ -1145,19 +1213,22 @@ class _PirSettingsSectionState extends State<_PirSettingsSection> {
         _backoffTime = s.backoffTime;
         _ledEnable = s.ledEnable;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('PIR settings saved')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).pirSettingsSaved)),
+      );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Save failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).saveFailed(e.toString())),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (_loading) {
       return const Padding(
         padding: EdgeInsets.all(16),
@@ -1181,9 +1252,9 @@ class _PirSettingsSectionState extends State<_PirSettingsSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'PIR settings',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        Text(
+          l10n.pirSettings,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 4),
         const Text(
@@ -1192,7 +1263,7 @@ class _PirSettingsSectionState extends State<_PirSettingsSection> {
           style: TextStyle(fontSize: 12, color: Colors.grey),
         ),
         const SizedBox(height: 16),
-        Text('Backoff time: $backoff s'),
+        Text(l10n.backoffTimeValue(backoff.toString())),
         Slider(
           key: const Key('pir_backoff_slider'),
           min: 1,
@@ -1205,10 +1276,10 @@ class _PirSettingsSectionState extends State<_PirSettingsSection> {
         SwitchListTile(
           key: const Key('pir_led_enable_switch'),
           contentPadding: EdgeInsets.zero,
-          title: const Text('LED enable'),
-          subtitle: const Text(
-            'Show the status LED when motion is detected.',
-            style: TextStyle(fontSize: 12),
+          title: Text(l10n.ledEnable),
+          subtitle: Text(
+            l10n.ledEnableSubtitle,
+            style: const TextStyle(fontSize: 12),
           ),
           value: led,
           onChanged: (v) => setState(() => _ledEnable = v),
@@ -1218,7 +1289,7 @@ class _PirSettingsSectionState extends State<_PirSettingsSection> {
           key: const Key('pir_settings_save_button'),
           onPressed: _save,
           icon: const Icon(Icons.save),
-          label: const Text('Save PIR settings'),
+          label: Text(l10n.savePirSettings),
         ),
       ],
     );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/device_entity.dart';
+import '../../l10n/app_localizations.dart';
 
 /// A row of large, round feature tiles shown on device detail pages.
 ///
@@ -25,12 +26,13 @@ class FeatureTilesRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final tiles = <_FeatureTileData>[
       if (device.type.hasTimer)
         _FeatureTileData(
           key: const Key('detail_timer_tile'),
           icon: Icons.timer,
-          label: 'Timer',
+          label: l10n.featureTimer,
           color: Colors.orange,
           onTap: onTimer,
         ),
@@ -38,7 +40,7 @@ class FeatureTilesRow extends StatelessWidget {
         _FeatureTileData(
           key: const Key('detail_scheduler_tile'),
           icon: Icons.schedule,
-          label: 'Scheduler',
+          label: l10n.featureScheduler,
           color: Colors.purple,
           onTap: onScheduler!,
         ),
@@ -46,7 +48,7 @@ class FeatureTilesRow extends StatelessWidget {
         _FeatureTileData(
           key: const Key('detail_history_tile'),
           icon: Icons.bar_chart,
-          label: 'History',
+          label: l10n.featureHistory,
           color: Colors.teal,
           onTap: onHistory!,
         ),

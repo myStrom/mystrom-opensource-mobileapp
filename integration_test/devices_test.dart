@@ -107,6 +107,7 @@ void main() {
   Future<void> pumpApp(WidgetTester tester) async {
     await tester.pumpWidget(
       MyApp(
+        locale: const Locale('en'),
         discoveryService: discovery,
         localDataSource: deviceDs,
         sceneDataSource: sceneDs,
@@ -637,7 +638,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // The section should be visible.
-    expect(find.text('PIR settings'), findsOneWidget);
+    expect(find.text('Motion sensor settings'), findsOneWidget);
     expect(find.byKey(const Key('pir_backoff_slider')), findsOneWidget);
     expect(find.byKey(const Key('pir_led_enable_switch')), findsOneWidget);
 

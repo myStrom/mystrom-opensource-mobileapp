@@ -76,6 +76,11 @@ class ProvisioningProvider extends ChangeNotifier {
   String? _error;
   String? get error => _error;
 
+  /// True when [_error] is the detail from a host WiFi scan failure
+  /// (localize with [AppLocalizations.couldNotScanWifi] in the UI).
+  bool _scanWifiError = false;
+  bool get scanWifiError => _scanWifiError;
+
   // ---- AP selection ----
 
   /// Scan the host WiFi for myStrom device APs.
@@ -83,6 +88,7 @@ class ProvisioningProvider extends ChangeNotifier {
     debugPrint('[provision] scanForAps called, platform=${_wifi.runtimeType}');
     _busy = true;
     _error = null;
+    _scanWifiError = false;
     notifyListeners();
     try {
       _apCandidates = await _wifi.scanMyStromAps();
@@ -97,7 +103,8 @@ class ProvisioningProvider extends ChangeNotifier {
       _error = e.message ?? e.code;
     } catch (e) {
       debugPrint('[provision] scanForAps error: $e');
-      _error = 'Could not scan WiFi: $e';
+      _scanWifiError = true;
+      _error = e.toString();
     } finally {
       _busy = false;
       notifyListeners();
@@ -265,6 +272,7 @@ class ProvisioningProvider extends ChangeNotifier {
     _networks = const [];
     _apCandidates = const [];
     _error = null;
+    _scanWifiError = false;
     _busy = false;
     notifyListeners();
   }

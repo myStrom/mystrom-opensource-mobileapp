@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 /// Reusable timer controls shown in a bottom sheet.
 ///
 /// Mode selector (none/on/off/toggle) + duration (H/M/S) + Set button.
@@ -22,6 +24,7 @@ class _TimerControlsState extends State<TimerControls> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -30,20 +33,22 @@ class _TimerControlsState extends State<TimerControls> {
             DropdownButton<String>(
               key: const Key('timer_mode_dropdown'),
               value: _mode,
-              items: const [
-                DropdownMenuItem(value: 'none', child: Text('None')),
-                DropdownMenuItem(value: 'on', child: Text('On')),
-                DropdownMenuItem(value: 'off', child: Text('Off')),
-                DropdownMenuItem(value: 'toggle', child: Text('Toggle')),
+              items: [
+                DropdownMenuItem(value: 'none', child: Text(l10n.timerNone)),
+                DropdownMenuItem(value: 'on', child: Text(l10n.on)),
+                DropdownMenuItem(value: 'off', child: Text(l10n.off)),
+                DropdownMenuItem(value: 'toggle', child: Text(l10n.toggle)),
               ],
               onChanged: (v) => setState(() => _mode = v ?? 'off'),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
-                'Duration: ${_hours.toString().padLeft(2, '0')}:'
-                '${_minutes.toString().padLeft(2, '0')}:'
-                '${_seconds.toString().padLeft(2, '0')}',
+                l10n.durationHms(
+                  _hours.toString().padLeft(2, '0'),
+                  _minutes.toString().padLeft(2, '0'),
+                  _seconds.toString().padLeft(2, '0'),
+                ),
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
@@ -54,7 +59,7 @@ class _TimerControlsState extends State<TimerControls> {
           children: [
             Expanded(
               child: _buildTimeSelector(
-                label: 'H',
+                label: l10n.hourShort,
                 value: _hours,
                 max: 23,
                 onChanged: (value) => setState(() => _hours = value),
@@ -63,7 +68,7 @@ class _TimerControlsState extends State<TimerControls> {
             const SizedBox(width: 8),
             Expanded(
               child: _buildTimeSelector(
-                label: 'M',
+                label: l10n.minuteShort,
                 value: _minutes,
                 max: 59,
                 onChanged: (value) => setState(() => _minutes = value),
@@ -72,7 +77,7 @@ class _TimerControlsState extends State<TimerControls> {
             const SizedBox(width: 8),
             Expanded(
               child: _buildTimeSelector(
-                label: 'S',
+                label: l10n.secondShort,
                 value: _seconds,
                 max: 59,
                 onChanged: (value) => setState(() => _seconds = value),
@@ -88,10 +93,10 @@ class _TimerControlsState extends State<TimerControls> {
               onPressed: _totalSeconds > 0
                   ? () => widget.onSet(_mode, _totalSeconds)
                   : null,
-              child: const Text('Set'),
+              child: Text(l10n.set),
             ),
             const SizedBox(width: 12),
-            Text('${_totalSeconds}s'),
+            Text(l10n.secondsShort('$_totalSeconds')),
           ],
         ),
       ],
