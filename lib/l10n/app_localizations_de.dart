@@ -767,7 +767,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get pirSettingsSubtitle =>
-      'Die Wartezeit (Backoff) ist die Sperrzeit in Sekunden nach einem Bewegungsereignis (1–86400). „LED aktivieren“ steuert die Statusanzeige am Gerät.';
+      'Die Wartezeit (Backoff) ist die Sperrzeit in Sekunden nach einem Bewegungsereignis (1–3600). „LED aktivieren“ steuert die Statusanzeige am Gerät.';
 
   @override
   String get pirSettingsSaved =>
@@ -1388,7 +1388,7 @@ class AppLocalizationsDeCh extends AppLocalizationsDe {
 
   @override
   String get pirSettingsSubtitle =>
-      'Die Wartezeit (Backoff) ist die Sperrzeit in Sekunden nach einem Bewegungsereignis (1–86400). «LED aktivieren» steuert die Statusanzeige am Gerät.';
+      'Die Wartezeit (Backoff) ist die Sperrzeit in Sekunden nach einem Bewegungsereignis (1–3600). «LED aktivieren» steuert die Statusanzeige am Gerät.';
 
   @override
   String get sceneIconDinner => 'Nachtessen';

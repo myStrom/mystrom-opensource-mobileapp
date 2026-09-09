@@ -766,7 +766,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pirSettingsSubtitle =>
-      'Backoff time is the cooldown in seconds after a motion event (1–86400). \"LED enable\" controls the status indicator on the device.';
+      'Backoff time is the cooldown in seconds after a motion event (1–3600). \"LED enable\" controls the status indicator on the device.';
 
   @override
   String get pirSettingsSaved => 'Motion sensor settings saved';

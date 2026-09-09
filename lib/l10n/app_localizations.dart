@@ -1380,7 +1380,7 @@ abstract class AppLocalizations {
   /// No description provided for @pirSettingsSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Backoff time is the cooldown in seconds after a motion event (1–86400). \"LED enable\" controls the status indicator on the device.'**
+  /// **'Backoff time is the cooldown in seconds after a motion event (1–3600). \"LED enable\" controls the status indicator on the device.'**
   String get pirSettingsSubtitle;
 
   /// No description provided for @pirSettingsSaved.

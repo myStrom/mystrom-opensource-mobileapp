@@ -439,7 +439,7 @@
   },
   "saveThresholds": "Save thresholds",
   "pirSettings": "Motion sensor settings",
-  "pirSettingsSubtitle": "Backoff time is the cooldown in seconds after a motion event (1–86400). \"LED enable\" controls the status indicator on the device.",
+  "pirSettingsSubtitle": "Backoff time is the cooldown in seconds after a motion event (1–3600). \"LED enable\" controls the status indicator on the device.",
   "pirSettingsSaved": "Motion sensor settings saved",
   "backoffTimeValue": "Backoff time: {seconds} s",
   "@backoffTimeValue": {

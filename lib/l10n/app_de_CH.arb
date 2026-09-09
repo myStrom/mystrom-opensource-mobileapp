@@ -21,7 +21,7 @@
   "favoriteSubtitle": "Dieses Gerät auf dem Dashboard unter «Favoriten» anzeigen.",
   "stripChannelModeSubtitle": "Farben / Kanäle / Kaltweiss-Warmweiss konfigurieren",
   "slotActionSaved": "Aktion «{slot}» gespeichert: {url}",
-  "pirSettingsSubtitle": "Die Wartezeit (Backoff) ist die Sperrzeit in Sekunden nach einem Bewegungsereignis (1–86400). «LED aktivieren» steuert die Statusanzeige am Gerät.",
+  "pirSettingsSubtitle": "Die Wartezeit (Backoff) ist die Sperrzeit in Sekunden nach einem Bewegungsereignis (1-3600). «LED aktivieren» steuert die Statusanzeige am Gerät.",
   "wifiSetupPlaceholder": "Um ein Gerät in ein anderes WLAN zu übernehmen, verwenden Sie «Gerät hinzufügen» → «SoftAP».",
   "chModeChannelsDesc": "4 unabhängige dimmbare Kanäle (z. B. 4 weisse Streifen)",
   "chModeColdWarmDesc": "2 Warmweiss- + 2 Kaltweiss-Kanäle (W+R = warmweiss, G+B = kaltweiss)",
