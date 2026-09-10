@@ -556,21 +556,13 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
           l10n.ntp,
           cs.ntp ? l10n.ok : l10n.failed,
         ),
-        _infoTile(
-          Icons.dns_outlined,
-          l10n.dns,
-          cs.dns ? l10n.ok : l10n.failed,
-        ),
+        _infoTile(Icons.dns_outlined, l10n.dns, cs.dns ? l10n.ok : l10n.failed),
         _infoTile(
           Icons.handshake,
           l10n.handshake,
           cs.handshake ? l10n.ok : l10n.failed,
         ),
-        _infoTile(
-          Icons.login,
-          l10n.login,
-          cs.login ? l10n.ok : l10n.failed,
-        ),
+        _infoTile(Icons.login, l10n.login, cs.login ? l10n.ok : l10n.failed),
       ],
     );
   }
@@ -691,9 +683,7 @@ class _SingleButtonActionTileState extends State<_SingleButtonActionTile> {
       setState(() => _currentUrl = url);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            AppLocalizations.of(context).buttonActionSaved(url),
-          ),
+          content: Text(AppLocalizations.of(context).buttonActionSaved(url)),
         ),
       );
     } catch (e) {
@@ -706,22 +696,56 @@ class _SingleButtonActionTileState extends State<_SingleButtonActionTile> {
     }
   }
 
+  /// Clear the configured button action by sending an empty URL.
+  Future<void> _clear() async {
+    final ip = widget.device.bestIp;
+    if (ip == null) return;
+    try {
+      final remote = DeviceRemoteDataSource(
+        DeviceHttpClient(token: widget.device.token),
+      );
+      await remote.setLcsButtonAction(ip, '');
+      if (!mounted) return;
+      setState(() => _currentUrl = null);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).buttonActionRemoved),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).removeFailed(e.toString()),
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final configured = _currentUrl != null && _currentUrl!.isNotEmpty;
     return ListTile(
       leading: const Icon(Icons.touch_app),
       title: Text(l10n.buttonAction),
       subtitle: Text(
         _loading
             ? l10n.loading
-            : (_currentUrl != null && _currentUrl!.isNotEmpty
-                  ? _currentUrl!
-                  : l10n.notConfigured),
+            : (configured ? _currentUrl! : l10n.notConfigured),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
-      trailing: const Icon(Icons.chevron_right),
+      trailing: configured
+          ? IconButton(
+              key: const Key('lcs_action_delete_button'),
+              icon: const Icon(Icons.delete_outline),
+              tooltip: l10n.removeAction,
+              onPressed: _clear,
+            )
+          : const Icon(Icons.chevron_right),
       onTap: _pick,
     );
   }
@@ -812,12 +836,44 @@ class _SwitchSlotActionTileState extends State<_SwitchSlotActionTile> {
     }
   }
 
+  /// Clear the configured slot action by sending an empty URL.
+  Future<void> _clear() async {
+    final ip = widget.device.bestIp;
+    if (ip == null) return;
+    try {
+      final remote = DeviceRemoteDataSource(
+        DeviceHttpClient(token: widget.device.token),
+      );
+      if (widget.slot == 'on') {
+        await remote.setSwitchButtonActionOn(ip, '');
+      } else {
+        await remote.setSwitchButtonActionOff(ip, '');
+      }
+      if (!mounted) return;
+      setState(() => _currentUrl = null);
+      final l10n = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.slotActionRemoved(widget.slot))),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).removeFailed(e.toString()),
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final label = widget.slot == 'on'
         ? l10n.whenRelayTurnsOn
         : l10n.whenRelayTurnsOff;
+    final configured = _currentUrl != null && _currentUrl!.isNotEmpty;
     return ListTile(
       leading: Icon(
         widget.slot == 'on' ? Icons.power_settings_new : Icons.power_off,
@@ -826,13 +882,18 @@ class _SwitchSlotActionTileState extends State<_SwitchSlotActionTile> {
       subtitle: Text(
         _loading
             ? l10n.loading
-            : (_currentUrl != null && _currentUrl!.isNotEmpty
-                  ? _currentUrl!
-                  : l10n.notConfigured),
+            : (configured ? _currentUrl! : l10n.notConfigured),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
-      trailing: const Icon(Icons.chevron_right),
+      trailing: configured
+          ? IconButton(
+              key: Key('switch_action_${widget.slot}_delete_button'),
+              icon: const Icon(Icons.delete_outline),
+              tooltip: l10n.removeAction,
+              onPressed: _clear,
+            )
+          : const Icon(Icons.chevron_right),
       onTap: _pick,
     );
   }
@@ -931,6 +992,37 @@ class _PirActionSectionState extends State<_PirActionSection> {
     }
   }
 
+  /// Clear the action URL for [slot] by sending an empty body.
+  Future<void> _clear(String slot) async {
+    final ip = widget.device.bestIp;
+    if (ip == null) return;
+    try {
+      final remote = DeviceRemoteDataSource(
+        DeviceHttpClient(token: widget.device.token),
+      );
+      await remote.setPirAction(ip, slot, url: '');
+      if (!mounted) return;
+      setState(() => _urls[slot] = '');
+      final l10n = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.slotActionRemoved(localizedPirSlotLabel(l10n, slot)),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).removeFailed(e.toString()),
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -949,6 +1041,7 @@ class _PirActionSectionState extends State<_PirActionSection> {
             icon: icon,
             url: _urls[slot] ?? '',
             onTap: () => _pick(slot),
+            onClear: () => _clear(slot),
           ),
       ],
     );
@@ -963,12 +1056,14 @@ class _PirSlotActionTile extends StatelessWidget {
     required this.icon,
     required this.url,
     required this.onTap,
+    required this.onClear,
   });
 
   final String label;
   final IconData icon;
   final String url;
   final VoidCallback onTap;
+  final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {
@@ -981,7 +1076,13 @@ class _PirSlotActionTile extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
-      trailing: const Icon(Icons.chevron_right),
+      trailing: url.isNotEmpty
+          ? IconButton(
+              icon: const Icon(Icons.delete_outline),
+              tooltip: l10n.removeAction,
+              onPressed: onClear,
+            )
+          : const Icon(Icons.chevron_right),
       onTap: onTap,
     );
   }
@@ -1045,7 +1146,9 @@ class _PirThresholdsSectionState extends State<_PirThresholdsSection> {
     if (ip == null || _night == null || _day == null) return;
     if (_night! >= _day!) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context).nightThresholdBelowDay)),
+        SnackBar(
+          content: Text(AppLocalizations.of(context).nightThresholdBelowDay),
+        ),
       );
       return;
     }

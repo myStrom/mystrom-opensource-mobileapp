@@ -694,6 +694,43 @@
       }
     }
   },
+  "removeAction": "Remove action",
+  "actionRemoved": "{scheme} action removed",
+  "@actionRemoved": {
+    "placeholders": {
+      "scheme": {
+        "type": "String"
+      }
+    }
+  },
+  "refererActionUrlRemoved": "{referer}/{action} action removed",
+  "@refererActionUrlRemoved": {
+    "placeholders": {
+      "referer": {
+        "type": "String"
+      },
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "buttonActionRemoved": "Button action removed",
+  "removeFailed": "Remove failed: {error}",
+  "@removeFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "slotActionRemoved": "{slot} action removed",
+  "@slotActionRemoved": {
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      }
+    }
+  },
   "assignAction": "Assign action",
   "targetDevice": "Target device",
   "deviceWithModel": "{displayName} ({model})",

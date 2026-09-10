@@ -43,6 +43,10 @@ class _ButtonDetailPageState extends State<ButtonDetailPage> {
     }
   }
 
+  /// Currently configured URL per scheme (loaded from the device).
+  Map<String, String> _schemeUrls = {};
+  bool _loading = true;
+
   @override
   void initState() {
     super.initState();
@@ -51,6 +55,29 @@ class _ButtonDetailPageState extends State<ButtonDetailPage> {
         DeviceRemoteDataSource(DeviceHttpClient(token: widget.device.token)),
       ),
     );
+    _load();
+  }
+
+  Future<void> _load() async {
+    final ip = widget.device.bestIp;
+    if (ip == null) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
+    try {
+      final cfg = await _config.getButtonActions(ip);
+      if (!mounted) return;
+      setState(() {
+        _schemeUrls = {
+          for (final a in cfg.actions)
+            if (a.url.isNotEmpty) a.scheme: a.url,
+        };
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
   }
 
   void _snack(String msg) =>
@@ -100,7 +127,23 @@ class _ButtonDetailPageState extends State<ButtonDetailPage> {
               key: Key('button_scheme_$scheme'),
               child: ListTile(
                 title: Text(_schemeLabel(l10n, scheme)),
-                trailing: const Icon(Icons.chevron_right),
+                subtitle: _loading
+                    ? null
+                    : Text(
+                        _schemeUrls[scheme]?.isNotEmpty == true
+                            ? _schemeUrls[scheme]!
+                            : l10n.notConfigured,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                trailing: _schemeUrls[scheme]?.isNotEmpty == true
+                    ? IconButton(
+                        key: Key('button_scheme_${scheme}_delete'),
+                        icon: const Icon(Icons.delete_outline),
+                        tooltip: l10n.removeAction,
+                        onPressed: () => _remove(scheme, l10n),
+                      )
+                    : const Icon(Icons.chevron_right),
                 onTap: () => _configure(scheme, devices, l10n),
               ),
             ),
@@ -130,6 +173,22 @@ class _ButtonDetailPageState extends State<ButtonDetailPage> {
         url: url,
       );
       _snack(l10n.schemeUrlSaved(scheme, url));
+      await _load();
+    } catch (e) {
+      _snack(e.toString());
+    }
+  }
+
+  /// Remove the action configured for [scheme].
+  void _remove(String scheme, AppLocalizations l10n) async {
+    if (widget.device.bestIp == null) return;
+    try {
+      await _config.removeButtonAction(
+        ip: widget.device.bestIp!,
+        scheme: scheme,
+      );
+      _snack(l10n.actionRemoved(scheme));
+      await _load();
     } catch (e) {
       _snack(e.toString());
     }

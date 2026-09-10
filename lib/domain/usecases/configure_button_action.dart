@@ -28,6 +28,10 @@ class ConfigureButtonAction {
   }
 
   // Single-button device
+  Future<ActionUrlConfigModel> getButtonActions(String ip) {
+    return _repo.getButtonActionsConfig(ip);
+  }
+
   Future<void> setButtonAction({
     required String ip,
     required String scheme,
@@ -37,6 +41,20 @@ class ConfigureButtonAction {
     final cfg = await _repo.getButtonActionsConfig(ip);
     final actions = cfg.actions.where((a) => a.scheme != scheme).toList();
     actions.add(ActionEntry(scheme: scheme, url: url, method: method));
+    await _repo.setButtonActionsConfig(
+      ip,
+      ActionUrlConfigModel(actions: actions),
+    );
+  }
+
+  /// Remove the action configured for [scheme] on a single-button device
+  /// by omitting it from the actions blob sent to the device.
+  Future<void> removeButtonAction({
+    required String ip,
+    required String scheme,
+  }) async {
+    final cfg = await _repo.getButtonActionsConfig(ip);
+    final actions = cfg.actions.where((a) => a.scheme != scheme).toList();
     await _repo.setButtonActionsConfig(
       ip,
       ActionUrlConfigModel(actions: actions),
@@ -56,6 +74,11 @@ class ConfigureButtonAction {
       action: action,
       url: url,
     );
+  }
+
+  /// All button-se actions: map of referer -> (action -> url).
+  Future<ActionUrlConfigModel> getAllButtonSeActions(String ip) {
+    return _repo.getAllButtonSeActions(ip);
   }
 
   Future<Map<String, String>> getButtonSeActions(

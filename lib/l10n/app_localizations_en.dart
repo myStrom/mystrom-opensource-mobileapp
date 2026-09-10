@@ -1188,6 +1188,32 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get removeAction => 'Remove action';
+
+  @override
+  String actionRemoved(String scheme) {
+    return '$scheme action removed';
+  }
+
+  @override
+  String refererActionUrlRemoved(String referer, String action) {
+    return '$referer/$action action removed';
+  }
+
+  @override
+  String get buttonActionRemoved => 'Button action removed';
+
+  @override
+  String removeFailed(String error) {
+    return 'Remove failed: $error';
+  }
+
+  @override
+  String slotActionRemoved(String slot) {
+    return '$slot action removed';
+  }
+
+  @override
   String get assignAction => 'Assign action';
 
   @override

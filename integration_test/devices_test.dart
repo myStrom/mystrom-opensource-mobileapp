@@ -509,6 +509,20 @@ void main() {
     expect(dev.state.pirActions['generic'], isNotEmpty);
     expect(dev.state.pirActions['generic'], contains('toggle'));
 
+    // Now remove the action with the delete button — the tile should go
+    // back to "Not configured" and the fake server should receive an
+    // empty URL for the slot.
+    final genericDelete = find.descendant(
+      of: find.byKey(const Key('pir_action_generic_tile')),
+      matching: find.byType(IconButton),
+    );
+    await tester.ensureVisible(genericDelete);
+    await tester.pumpAndSettle();
+    await tester.tap(genericDelete);
+    await tester.pumpAndSettle();
+    expect(dev.state.pirActions['generic'], isEmpty);
+    expect(find.text('Not configured'), findsNWidgets(6));
+
     await tester.tap(find.byKey(const Key('settings_back_button')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('detail_back_button')));

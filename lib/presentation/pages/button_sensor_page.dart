@@ -35,6 +35,10 @@ class _ButtonSensorPageState extends State<ButtonSensorPage> {
   bool _noIpError = false;
   String? _error;
 
+  /// Currently configured URL per "referer/action" key, loaded from the
+  /// device so the UI can show what is configured and offer removal.
+  Map<String, String> _actionUrls = {};
+
   @override
   void initState() {
     super.initState();
@@ -75,6 +79,26 @@ class _ButtonSensorPageState extends State<ButtonSensorPage> {
         _error = e.toString();
         _loading = false;
       });
+    }
+    _loadActions();
+  }
+
+  /// Load all action URLs configured on the device.
+  Future<void> _loadActions() async {
+    final ip = widget.device.bestIp;
+    if (ip == null) return;
+    try {
+      final cfg = await _config.getAllButtonSeActions(ip);
+      if (!mounted) return;
+      final urls = <String, String>{};
+      cfg.refererActions.forEach((referer, actions) {
+        actions.forEach((action, url) {
+          urls['$referer/$action'] = url;
+        });
+      });
+      setState(() => _actionUrls = urls);
+    } catch (_) {
+      // Actions are secondary to sensors — ignore load failures.
     }
   }
 
@@ -241,7 +265,26 @@ class _ButtonSensorPageState extends State<ButtonSensorPage> {
                 ListTile(
                   dense: true,
                   title: Text(_actionLabel(l10n, action)),
-                  trailing: const Icon(Icons.edit, size: 18),
+                  subtitle: (_actionUrls['$referer/$action'] ?? '').isNotEmpty
+                      ? Text(
+                          _actionUrls['$referer/$action']!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        )
+                      : null,
+                  trailing: (_actionUrls['$referer/$action'] ?? '').isNotEmpty
+                      ? IconButton(
+                          key: Key('button_se_${referer}_${action}_delete'),
+                          icon: const Icon(Icons.delete_outline, size: 18),
+                          tooltip: l10n.removeAction,
+                          onPressed: () => _remove(
+                            referer,
+                            action,
+                            widget.device.bestIp!,
+                            l10n,
+                          ),
+                        )
+                      : const Icon(Icons.edit, size: 18),
                   onTap: () => _configure(referer, action, devices, l10n),
                 ),
               const Divider(),
@@ -275,6 +318,29 @@ class _ButtonSensorPageState extends State<ButtonSensorPage> {
         url: url,
       );
       _snack(l10n.refererActionUrlSaved(referer, action, url));
+      await _loadActions();
+    } catch (e) {
+      _snack(e.toString());
+    }
+  }
+
+  /// Remove the action configured for [referer]/[action] by sending an
+  /// empty URL string to the device.
+  void _remove(
+    String referer,
+    String action,
+    String ip,
+    AppLocalizations l10n,
+  ) async {
+    try {
+      await _config.setButtonSeAction(
+        ip: ip,
+        referer: referer,
+        action: action,
+        url: '',
+      );
+      _snack(l10n.refererActionUrlRemoved(referer, action));
+      await _loadActions();
     } catch (e) {
       _snack(e.toString());
     }

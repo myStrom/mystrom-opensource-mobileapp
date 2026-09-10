@@ -2127,6 +2127,42 @@ abstract class AppLocalizations {
   /// **'{referer}/{action} → {url}'**
   String refererActionUrlSaved(String referer, String action, String url);
 
+  /// No description provided for @removeAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove action'**
+  String get removeAction;
+
+  /// No description provided for @actionRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'{scheme} action removed'**
+  String actionRemoved(String scheme);
+
+  /// No description provided for @refererActionUrlRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'{referer}/{action} action removed'**
+  String refererActionUrlRemoved(String referer, String action);
+
+  /// No description provided for @buttonActionRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Button action removed'**
+  String get buttonActionRemoved;
+
+  /// No description provided for @removeFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove failed: {error}'**
+  String removeFailed(String error);
+
+  /// No description provided for @slotActionRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'{slot} action removed'**
+  String slotActionRemoved(String slot);
+
   /// No description provided for @assignAction.
   ///
   /// In en, this message translates to:
