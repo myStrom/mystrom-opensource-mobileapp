@@ -1,5 +1,12 @@
 import '../../data/models/scheduler_item.dart';
 
+/// Floor division for day shifts across the week boundary: rounds towards
+/// negative infinity so that e.g. -90.floorDiv(1440) = -1 (truncating
+/// `~/` would give 0 and keep the wrong weekday).
+extension _FloorDiv on num {
+  int floorDiv(int divisor) => (this / divisor).floor();
+}
+
 /// Conversion between device-side UTC schedule times and local display times.
 ///
 /// Mirrors the logic in myStrom's `scheduler.html`: the device stores every
@@ -26,7 +33,12 @@ class SchedulerTimeConverter {
     final utcMin = item.hour * 60 + item.minute;
     final shifted = utcMin + tzOffsetMin;
     final wrapped = ((shifted % (7 * 1440)) + (7 * 1440)) % (7 * 1440);
-    final dayShift = shifted ~/ 1440;
+    // Floor division (NOT `~/`): for negative shifts (western zones)
+    // the day must move back, e.g. UTC 23:30 -> local 00:30 next day
+    // needs dayShift +1, and UTC 00:30 at UTC-2 -> local 22:30 needs
+    // dayShift -1. Truncating `~/` would floor positive and truncate
+    // negative values differently, keeping the wrong day.
+    final dayShift = shifted.floorDiv(1440);
     return item.copyWith(
       hour: (wrapped % 1440) ~/ 60,
       minute: wrapped % 60,
@@ -39,7 +51,9 @@ class SchedulerTimeConverter {
     final localMin = item.hour * 60 + item.minute;
     final shifted = localMin - tzOffsetMin;
     final wrapped = ((shifted % (7 * 1440)) + (7 * 1440)) % (7 * 1440);
-    final dayShift = shifted ~/ 1440;
+    // Floor division: a local Monday 00:30 at UTC+2 is Sunday 22:30
+    // UTC — shifted = -90 must give dayShift -1, not 0.
+    final dayShift = shifted.floorDiv(1440);
     return item.copyWith(
       hour: (wrapped % 1440) ~/ 60,
       minute: wrapped % 60,

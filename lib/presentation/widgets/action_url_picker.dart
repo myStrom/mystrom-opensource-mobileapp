@@ -27,6 +27,7 @@ class _ActionUrlPickerState extends State<ActionUrlPicker> {
   String _action = 'toggle';
   String _color = '120;100;100';
   int _ramp = 500;
+  String? _colorError;
 
   static const _actions = ['toggle', 'on', 'off', 'color'];
 
@@ -85,8 +86,14 @@ class _ActionUrlPickerState extends State<ActionUrlPicker> {
                 decoration: InputDecoration(
                   labelText: l10n.colorHsvShort,
                   hintText: '120;100;100',
+                  errorText: _colorError,
                 ),
-                onChanged: (v) => _color = v,
+                onChanged: (v) {
+                  setState(() {
+                    _color = v;
+                    _colorError = null;
+                  });
+                },
               ),
               const SizedBox(height: 8),
               TextField(
@@ -113,12 +120,18 @@ class _ActionUrlPickerState extends State<ActionUrlPicker> {
 
   void _generate() {
     if (_target == null || _target!.bestIp == null) return;
-    // Sanitize the HSV color (clamp hue to 0-359, sat/val to 0-100).
-    // Invalid input falls back to the default color so the generated
-    // URL always carries a well-formed color parameter.
-    final color = _action == 'color'
-        ? (sanitizeHsv(_color) ?? '120;100;100')
-        : null;
+    // Color actions require a well-formed H;S;V string. Out-of-range
+    // values are clamped (hue to 0-359, sat/val to 0-100); a malformed
+    // string is REJECTED with a validation error instead of being
+    // silently replaced by an arbitrary default color.
+    String? color;
+    if (_action == 'color') {
+      color = sanitizeHsv(_color);
+      if (color == null) {
+        setState(() => _colorError = AppLocalizations.of(context).invalidColor);
+        return;
+      }
+    }
     final url = ConfigureButtonAction.buildUrl(
       targetIp: _target!.bestIp!,
       targetType: _target!.type,

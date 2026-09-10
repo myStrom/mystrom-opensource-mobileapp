@@ -1214,6 +1214,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get invalidColor => 'Invalid color. Use H;S;V (e.g. 120;100;100).';
+
+  @override
   String get assignAction => 'Assign action';
 
   @override

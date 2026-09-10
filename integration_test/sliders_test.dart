@@ -433,6 +433,12 @@ void main() {
     await touchLastSeen(mac);
     await pumpApp(tester);
 
+    // Baseline: the fake starts at color 0;0;0 — the assertions below
+    // require an actual NEW request with an exact hue, so a passing
+    // baseline alone can never satisfy them.
+    expect(dev.state.color, '0;0;0');
+    expect(dev.state.mode, 'hsv');
+
     await tester.tap(find.byKey(const Key('device_card_$mac')));
     await tester.pumpAndSettle(const Duration(seconds: 1));
 
@@ -448,16 +454,31 @@ void main() {
         .first;
     expect(hueSlider, findsOneWidget);
 
-    // Drag the hue slider all the way right: the emitted H;S;V value must
-    // have hue <= 359, never 360.
+    // Drag the hue slider all the way right (far beyond the track width
+    // so it saturates at the slider maximum).
     await tester.drag(hueSlider, const Offset(1000, 0));
     await tester.pumpAndSettle(const Duration(milliseconds: 600));
 
+    // A NEW color POST must have landed: mode hsv with hue exactly at
+    // the slider maximum 359 — never 360 and never the baseline 0.
+    expect(dev.state.mode, 'hsv');
     final color = dev.state.color;
     expect(color, isNotEmpty);
-    final hue = int.tryParse(color.split(';').first);
+    final parts = color.split(';');
+    expect(parts.length, 3, reason: 'H;S;V format expected, got: $color');
+    final hue = int.tryParse(parts[0]);
     expect(hue, isNotNull);
-    expect(hue!, lessThan(360));
+    expect(hue, 359,
+        reason: 'slider max must emit hue 359 exactly, got: $color');
+    expect(color, isNot('0;0;0'),
+        reason: 'the drag must have sent a new color command');
+
+    // The color picker preview must reflect the same value: the UI keeps
+    // `_hue` at most maxHue (359), so re-parsing the emitted string via
+    // the widget state equals the server color.
+    final text = find.text('Hue: 359°');
+    expect(text, findsOneWidget,
+        reason: 'the hue slider label should read 359 at maximum');
 
     await tester.tap(find.byKey(const Key('detail_back_button')));
     await tester.pumpAndSettle();

@@ -2163,6 +2163,12 @@ abstract class AppLocalizations {
   /// **'{slot} action removed'**
   String slotActionRemoved(String slot);
 
+  /// No description provided for @invalidColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid color. Use H;S;V (e.g. 120;100;100).'**
+  String get invalidColor;
+
   /// No description provided for @assignAction.
   ///
   /// In en, this message translates to:

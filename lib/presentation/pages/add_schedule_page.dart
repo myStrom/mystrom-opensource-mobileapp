@@ -105,7 +105,10 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
         children: [
           // ---- Action selector ----
-          Text(l10n.action, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(
+            l10n.action,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,

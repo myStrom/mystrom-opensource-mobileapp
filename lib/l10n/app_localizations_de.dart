@@ -1217,6 +1217,10 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get invalidColor =>
+      'Ungültige Farbe. Format H;S;V verwenden (z. B. 120;100;100).';
+
+  @override
   String get assignAction => 'Aktion zuweisen';
 
   @override

@@ -731,6 +731,7 @@
       }
     }
   },
+  "invalidColor": "Invalid color. Use H;S;V (e.g. 120;100;100).",
   "assignAction": "Assign action",
   "targetDevice": "Target device",
   "deviceWithModel": "{displayName} ({model})",
