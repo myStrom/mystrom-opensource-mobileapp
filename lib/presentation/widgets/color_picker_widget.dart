@@ -3,10 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../utils/hsv_utils.dart';
 
 /// Simple HSV color picker for strip/bulb control.
 ///
-/// Produces a color string in `H;S;V` format (0-360, 0-100, 0-100).
+/// Produces a color string in `H;S;V` format (0-359, 0-100, 0-100).
 /// Emits color changes with a debounce so we don't flood the device
 /// with HTTP requests while dragging sliders.
 class ColorPickerWidget extends StatefulWidget {
@@ -38,9 +39,9 @@ class _ColorPickerWidgetState extends State<ColorPickerWidget> {
   @override
   void initState() {
     super.initState();
-    _hue = widget.initialHue;
-    _sat = widget.initialSaturation;
-    _val = widget.initialValue;
+    _hue = widget.initialHue.clamp(0, maxHue.toDouble());
+    _sat = widget.initialSaturation.clamp(0, 100);
+    _val = widget.initialValue.clamp(0, 100);
   }
 
   @override
@@ -73,8 +74,8 @@ class _ColorPickerWidgetState extends State<ColorPickerWidget> {
         Text(l10n.hueValue('${_hue.round()}')),
         Slider(
           min: 0,
-          max: 360,
-          value: _hue,
+          max: maxHue.toDouble(),
+          value: _hue.clamp(0, maxHue.toDouble()),
           onChanged: (v) {
             setState(() => _hue = v);
             _scheduleEmit();

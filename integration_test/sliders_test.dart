@@ -22,6 +22,7 @@ import 'package:mystrom_local/data/datasources/device_local_ds.dart';
 import 'package:mystrom_local/data/datasources/scene_local_ds.dart';
 import 'package:mystrom_local/data/models/scene.dart';
 import 'package:mystrom_local/data/models/stored_device.dart';
+import 'package:mystrom_local/presentation/widgets/color_picker_widget.dart';
 
 import 'fake_mystrom_server.dart';
 
@@ -415,6 +416,51 @@ void main() {
 
     expect(find.text('Action scene'), findsWidgets);
 
+    await dev.server.stop();
+  });
+
+  testWidgets('hsv hue slider clamps to 359 and never sends 360', (
+    tester,
+  ) async {
+    const mac = 'AA:BB:CC:DD:EE:S8';
+    final dev = await addDevice(
+      mac: mac,
+      name: 'WRS Hue',
+      typeCode: 105,
+      type: 'strip',
+      model: 'WRS',
+    );
+    await touchLastSeen(mac);
+    await pumpApp(tester);
+
+    await tester.tap(find.byKey(const Key('device_card_$mac')));
+    await tester.pumpAndSettle(const Duration(seconds: 1));
+
+    // The HSV tab is the default Color tab on the strip detail page — the
+    // ColorPickerWidget hue/saturation/value sliders are rendered in the
+    // body below the ramp slider. Grab the hue slider (first slider inside
+    // the ColorPickerWidget).
+    final hueSlider = find
+        .descendant(
+          of: find.byType(ColorPickerWidget),
+          matching: find.byType(Slider),
+        )
+        .first;
+    expect(hueSlider, findsOneWidget);
+
+    // Drag the hue slider all the way right: the emitted H;S;V value must
+    // have hue <= 359, never 360.
+    await tester.drag(hueSlider, const Offset(1000, 0));
+    await tester.pumpAndSettle(const Duration(milliseconds: 600));
+
+    final color = dev.state.color;
+    expect(color, isNotEmpty);
+    final hue = int.tryParse(color.split(';').first);
+    expect(hue, isNotNull);
+    expect(hue!, lessThan(360));
+
+    await tester.tap(find.byKey(const Key('detail_back_button')));
+    await tester.pumpAndSettle();
     await dev.server.stop();
   });
 

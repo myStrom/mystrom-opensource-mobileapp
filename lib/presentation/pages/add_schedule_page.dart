@@ -4,6 +4,7 @@ import '../../core/utils/scheduler_time.dart';
 import '../../data/models/scheduler_item.dart';
 import '../../l10n/app_localizations.dart';
 import '../utils/action_l10n.dart';
+import '../utils/hsv_utils.dart';
 import '../widgets/analog_time_picker.dart';
 
 /// Full-page "add schedule entry" editor.
@@ -56,6 +57,7 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
 
   void _submit() {
     // Parse HSV string "H;S;V" into a map for the new scheduler API.
+    // Hue is clamped to 0-359 (myStrom valid range).
     String? mode;
     Map<String, dynamic>? hsv;
     if (widget.hasColor && _colorCtrl.text.isNotEmpty) {
@@ -63,9 +65,9 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
       if (parts.length == 3) {
         mode = 'hsv';
         hsv = {
-          'hue': int.tryParse(parts[0]) ?? 0,
-          'saturation': int.tryParse(parts[1]) ?? 100,
-          'value': int.tryParse(parts[2]) ?? 100,
+          'hue': (int.tryParse(parts[0]) ?? 0).clamp(0, maxHue),
+          'saturation': (int.tryParse(parts[1]) ?? 100).clamp(0, 100),
+          'value': (int.tryParse(parts[2]) ?? 100).clamp(0, 100),
         };
       }
     }
@@ -179,7 +181,7 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
                       controller: _colorCtrl,
                       decoration: InputDecoration(
                         labelText: l10n.colorHsv,
-                        hintText: '360;100;100',
+                        hintText: '359;100;100',
                         border: const OutlineInputBorder(),
                       ),
                     ),

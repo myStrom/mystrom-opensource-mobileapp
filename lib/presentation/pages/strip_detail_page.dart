@@ -9,6 +9,7 @@ import '../../domain/entities/device_entity.dart';
 import '../../domain/usecases/control_strip.dart';
 import '../../domain/usecases/set_timer.dart';
 import '../../l10n/app_localizations.dart';
+import '../utils/hsv_utils.dart';
 import '../utils/number_format.dart';
 import '../widgets/color_picker_widget.dart';
 import '../widgets/feature_tiles_row.dart';
@@ -272,7 +273,7 @@ class _StripDetailPageState extends State<StripDetailPage>
     final parts = color.split(';');
     if (parts.isNotEmpty) {
       final h = double.tryParse(parts[0]);
-      if (h != null) return h.clamp(0, 360);
+      if (h != null) return h.clamp(0, maxHue.toDouble());
     }
     return 0;
   }

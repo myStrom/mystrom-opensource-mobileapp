@@ -4,6 +4,7 @@ import '../../domain/entities/device_entity.dart';
 import '../../domain/usecases/configure_button_action.dart';
 import '../../l10n/app_localizations.dart';
 import '../utils/action_l10n.dart';
+import '../utils/hsv_utils.dart';
 
 /// Dialog/widget that lets the user pick a target device and an action,
 /// then generates the action URL automatically.
@@ -80,6 +81,7 @@ class _ActionUrlPickerState extends State<ActionUrlPicker> {
             if (_action == 'color') ...[
               const SizedBox(height: 16),
               TextField(
+                key: const Key('action_url_color_field'),
                 decoration: InputDecoration(
                   labelText: l10n.colorHsvShort,
                   hintText: '120;100;100',
@@ -111,11 +113,17 @@ class _ActionUrlPickerState extends State<ActionUrlPicker> {
 
   void _generate() {
     if (_target == null || _target!.bestIp == null) return;
+    // Sanitize the HSV color (clamp hue to 0-359, sat/val to 0-100).
+    // Invalid input falls back to the default color so the generated
+    // URL always carries a well-formed color parameter.
+    final color = _action == 'color'
+        ? (sanitizeHsv(_color) ?? '120;100;100')
+        : null;
     final url = ConfigureButtonAction.buildUrl(
       targetIp: _target!.bestIp!,
       targetType: _target!.type,
       action: _action,
-      color: _action == 'color' ? _color : null,
+      color: color,
       ramp: _ramp,
     );
     widget.onUrlGenerated(url);

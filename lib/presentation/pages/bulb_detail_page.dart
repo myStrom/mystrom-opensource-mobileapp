@@ -10,6 +10,7 @@ import '../../domain/entities/device_entity.dart';
 import '../../domain/usecases/control_bulb.dart';
 import '../../domain/usecases/set_timer.dart';
 import '../../l10n/app_localizations.dart';
+import '../utils/hsv_utils.dart';
 import '../utils/number_format.dart';
 import '../widgets/color_picker_widget.dart';
 import '../widgets/feature_tiles_row.dart';
@@ -19,7 +20,7 @@ import 'device_settings_page.dart';
 /// Bulb control page.
 ///
 /// Supports three color modes shown as tabs:
-/// - **Color** (hsv): Hue;Saturation;Value (0-360;0-100;0-100)
+/// - **Color** (hsv): Hue;Saturation;Value (0-359;0-100;0-100)
 /// - **Whites** (mono): Cold/warm white channel + brightness
 /// - **WRGB** (rgb): Four sliders for Warm White, Red, Green, Blue (0-255)
 ///
@@ -509,12 +510,13 @@ class _BulbDetailPageState extends State<BulbDetailPage>
   }
 
   /// Parse hue from HSV string "H;S;V". Defaults to 0 (red).
+  /// Clamped to 0-359: myStrom firmware treats 360 as invalid hue.
   static double _parseHue(String? color) {
     if (color == null || color.isEmpty) return 0;
     final parts = color.split(';');
     if (parts.isNotEmpty) {
       final h = double.tryParse(parts[0]);
-      if (h != null) return h.clamp(0, 360);
+      if (h != null) return h.clamp(0, maxHue.toDouble());
     }
     return 0;
   }

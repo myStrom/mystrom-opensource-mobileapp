@@ -18,6 +18,7 @@ Flutter/Dart mobile app for **local** control of myStrom IoT devices (no cloud).
   - Bulb — color, brightness, ramp, timer
   - WMS — PIR motion/light/temperature
   - BP2 / BM1 / Button — action URL configuration
+- **HSV hue range 0–359** — myStrom devices accept hue in the `0–359` range (360 wraps to red and is rejected/mishandled by some firmware versions), so every hue input is clamped via `lib/presentation/utils/hsv_utils.dart` (`clampHue`/`sanitizeHsv`): the color picker slider (bulb/strip), HSV parsed back from device state, the scheduler HSV text fields (add-schedule page + scheduler card), and the action URL picker (invalid HSV falls back to the default color).
 - **Lockable devices** — mark a device as locked (e.g. a fridge) to disable its on/off toggle everywhere (dashboard card, detail page, scenes, room bulk-toggle). The card turns yellow and the power button shows a lock icon. Timers and scheduler are still allowed. The "Lock on/off" option is hidden for PIR (WMS) and button devices (BP1/BP2/BM1/Button), which have no on/off state.
 - **Total power** — the dashboard shows the total current power draw (W) for the selected category (All / Favorite / a room), aggregating the `power` field reported by each device.
 - **Temperature offset** — devices with a temperature sensor (WS2, WSE, WSX, WMS, BP2, BP1, BM1) expose a ±30 °C offset slider in Settings (one decimal). The offset is applied to the raw reading everywhere temperature is shown (cards, detail pages, sensors).

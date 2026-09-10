@@ -10,6 +10,7 @@ import '../../domain/entities/device_entity.dart';
 import '../../domain/usecases/control_scheduler.dart';
 import '../../l10n/app_localizations.dart';
 import '../utils/action_l10n.dart';
+import '../utils/hsv_utils.dart';
 
 /// Scheduler page — firmware >= 5.0.0 on WS2, WSE, WRS, WMS, WSX, WLL only.
 ///
@@ -410,6 +411,7 @@ class _AddFormState extends State<_AddForm> {
     final hour = int.tryParse(_hourCtrl.text) ?? 0;
     final minute = int.tryParse(_minuteCtrl.text) ?? 0;
     // Parse HSV string "H;S;V" into a map for the new scheduler API.
+    // Hue is clamped to 0-359 (myStrom valid range).
     String? mode;
     Map<String, dynamic>? hsv;
     if (widget.hasColor && _colorCtrl.text.isNotEmpty) {
@@ -417,9 +419,9 @@ class _AddFormState extends State<_AddForm> {
       if (parts.length == 3) {
         mode = 'hsv';
         hsv = {
-          'hue': int.tryParse(parts[0]) ?? 0,
-          'saturation': int.tryParse(parts[1]) ?? 100,
-          'value': int.tryParse(parts[2]) ?? 100,
+          'hue': (int.tryParse(parts[0]) ?? 0).clamp(0, maxHue),
+          'saturation': (int.tryParse(parts[1]) ?? 100).clamp(0, 100),
+          'value': (int.tryParse(parts[2]) ?? 100).clamp(0, 100),
         };
       }
     }
@@ -510,7 +512,7 @@ class _AddFormState extends State<_AddForm> {
                       controller: _colorCtrl,
                       decoration: InputDecoration(
                         labelText: l10n.colorHsv,
-                        hintText: '360;100;100',
+                        hintText: '359;100;100',
                         border: const OutlineInputBorder(),
                       ),
                     ),
@@ -659,6 +661,7 @@ class _SchedulerCardState extends State<_SchedulerCard> {
 
   void _emit() {
     // Parse HSV string into a map for the new scheduler API.
+    // Hue is clamped to 0-359 (myStrom valid range).
     String? mode;
     Map<String, dynamic>? hsv;
     if (widget.hasColor && _colorCtrl.text.isNotEmpty) {
@@ -666,9 +669,9 @@ class _SchedulerCardState extends State<_SchedulerCard> {
       if (parts.length == 3) {
         mode = 'hsv';
         hsv = {
-          'hue': int.tryParse(parts[0]) ?? 0,
-          'saturation': int.tryParse(parts[1]) ?? 100,
-          'value': int.tryParse(parts[2]) ?? 100,
+          'hue': (int.tryParse(parts[0]) ?? 0).clamp(0, maxHue),
+          'saturation': (int.tryParse(parts[1]) ?? 100).clamp(0, 100),
+          'value': (int.tryParse(parts[2]) ?? 100).clamp(0, 100),
         };
       }
     }
@@ -776,7 +779,7 @@ class _SchedulerCardState extends State<_SchedulerCard> {
                       controller: _colorCtrl,
                       decoration: InputDecoration(
                         labelText: l10n.colorHsv,
-                        hintText: '360;100;100',
+                        hintText: '359;100;100',
                         border: const OutlineInputBorder(),
                       ),
                       onChanged: (_) => _emit(),
