@@ -3,6 +3,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
 import 'core/network/udp_discovery.dart';
+import 'core/network/device_auth.dart';
+import 'presentation/widgets/device_token_dialog.dart';
 import 'data/datasources/device_local_ds.dart';
 import 'data/datasources/scene_local_ds.dart';
 import 'data/repositories/device_repository.dart';
@@ -18,7 +20,7 @@ import 'presentation/providers/discovery_provider.dart';
 import 'presentation/providers/scene_provider.dart';
 
 /// Root widget — sets up providers and starts UDP discovery.
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({
     super.key,
     required this.discoveryService,
@@ -35,10 +37,60 @@ class MyApp extends StatelessWidget {
   final Locale? locale;
 
   @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  final _navigatorKey = GlobalKey<NavigatorState>();
+  late final DeviceRepository _deviceRepo;
+  late final DeviceAuth _auth;
+
+  @override
+  void initState() {
+    super.initState();
+    _deviceRepo = DeviceRepository(widget.localDataSource);
+    _auth = DeviceAuth(
+      readToken: (id) => _deviceRepo.getByMac(id)?.token,
+      writeToken: (id, token) async {
+        final stored = _deviceRepo.getByMac(id);
+        if (stored == null) return; // staged until the user adds the device
+        stored.token = token;
+        await _deviceRepo.update(stored);
+      },
+      prompt: (host, verify) async {
+        final context = _navigatorKey.currentContext;
+        if (context == null || !mounted) return null;
+        return showDialog<TokenInput>(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => DeviceTokenDialog(
+            verify: verify,
+            deviceLabel:
+                _deviceRepo.getByMac(_auth.identityFor(host))?.displayName ??
+                host,
+          ),
+        );
+      },
+    );
+    for (final device in _deviceRepo.getAll()) {
+      if (device.lastKnownIp != null) {
+        _auth.bind(device.lastKnownIp!, device.mac);
+      }
+    }
+    DeviceAuth.shared = _auth;
+  }
+
+  @override
+  void dispose() {
+    if (identical(DeviceAuth.shared, _auth)) DeviceAuth.shared = null;
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final discoveryRepo = DiscoveryRepository(discoveryService);
-    final deviceRepo = DeviceRepository(localDataSource);
-    final sceneRepo = SceneRepository(sceneDataSource);
+    final discoveryRepo = DiscoveryRepository(widget.discoveryService);
+    final deviceRepo = _deviceRepo;
+    final sceneRepo = SceneRepository(widget.sceneDataSource);
     final runScene = RunScene(DeviceRemoteDataSource(DeviceHttpClient()));
 
     return MultiProvider(
@@ -63,8 +115,9 @@ class MyApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
+        navigatorKey: _navigatorKey,
         onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
-        locale: locale,
+        locale: widget.locale,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
             seedColor: const Color(0xFF5EB342),

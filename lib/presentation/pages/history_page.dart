@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../utils/device_error_message.dart';
 import 'package:intl/intl.dart' show NumberFormat;
 
 import '../../core/network/device_http_client.dart';
@@ -132,7 +134,7 @@ class _HistoryPageState extends State<HistoryPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = deviceErrorMessage(e, AppLocalizations.of(context));
         _loading = false;
       });
     }
@@ -240,10 +242,7 @@ class _HistoryPageState extends State<HistoryPage> {
       );
     }
     if (_noIp) {
-      return _CenterMessage(
-        icon: Icons.wifi_off,
-        text: l10n.noIpAddress,
-      );
+      return _CenterMessage(icon: Icons.wifi_off, text: l10n.noIpAddress);
     }
     if (_error != null) {
       return Padding(
@@ -270,10 +269,7 @@ class _HistoryPageState extends State<HistoryPage> {
       );
     }
     if (_allRecords.isEmpty) {
-      return _CenterMessage(
-        icon: Icons.inbox,
-        text: l10n.noHistoryDataYet,
-      );
+      return _CenterMessage(icon: Icons.inbox, text: l10n.noHistoryDataYet);
     }
     return _HistoryContent(
       records: _dayRecords(_selectedDate),

@@ -468,17 +468,26 @@ void main() {
     expect(parts.length, 3, reason: 'H;S;V format expected, got: $color');
     final hue = int.tryParse(parts[0]);
     expect(hue, isNotNull);
-    expect(hue, 359,
-        reason: 'slider max must emit hue 359 exactly, got: $color');
-    expect(color, isNot('0;0;0'),
-        reason: 'the drag must have sent a new color command');
+    expect(
+      hue,
+      359,
+      reason: 'slider max must emit hue 359 exactly, got: $color',
+    );
+    expect(
+      color,
+      isNot('0;0;0'),
+      reason: 'the drag must have sent a new color command',
+    );
 
     // The color picker preview must reflect the same value: the UI keeps
     // `_hue` at most maxHue (359), so re-parsing the emitted string via
     // the widget state equals the server color.
     final text = find.text('Hue: 359°');
-    expect(text, findsOneWidget,
-        reason: 'the hue slider label should read 359 at maximum');
+    expect(
+      text,
+      findsOneWidget,
+      reason: 'the hue slider label should read 359 at maximum',
+    );
 
     await tester.tap(find.byKey(const Key('detail_back_button')));
     await tester.pumpAndSettle();

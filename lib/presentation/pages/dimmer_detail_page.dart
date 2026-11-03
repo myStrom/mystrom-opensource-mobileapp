@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../utils/device_error_message.dart';
+
 import '../../core/network/device_http_client.dart';
 import '../../data/datasources/device_remote_ds.dart';
 import '../../data/models/dimmer_state.dart';
@@ -72,7 +74,7 @@ class _DimmerDetailPageState extends State<DimmerDetailPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = deviceErrorMessage(e, AppLocalizations.of(context));
         _loading = false;
       });
     }
@@ -97,7 +99,7 @@ class _DimmerDetailPageState extends State<DimmerDetailPage> {
               _snack(timerSetMsg);
             } catch (e) {
               if (!mounted) return;
-              _snack(e.toString());
+              showDeviceError(e);
             }
           },
         ),
@@ -166,7 +168,7 @@ class _DimmerDetailPageState extends State<DimmerDetailPage> {
                         }
                         setState(() => _state = _state?.copyWith(on: v));
                       } catch (e) {
-                        _snack(e.toString());
+                        showDeviceError(e);
                       }
                     },
             ),
@@ -204,7 +206,7 @@ class _DimmerDetailPageState extends State<DimmerDetailPage> {
                     ramp: _ramp,
                   );
                 } catch (e) {
-                  _snack(e.toString());
+                  showDeviceError(e);
                 }
               },
             ),

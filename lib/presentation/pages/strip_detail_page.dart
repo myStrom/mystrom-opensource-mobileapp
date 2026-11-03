@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../utils/device_error_message.dart';
+
 import '../../core/network/device_http_client.dart';
 import '../../data/datasources/device_remote_ds.dart';
 import '../../data/models/strip_state.dart';
@@ -112,7 +114,7 @@ class _StripDetailPageState extends State<StripDetailPage>
           _refresh();
         })
         .catchError((e) {
-          _snack(e.toString());
+          showDeviceError(e);
           return null;
         });
   }
@@ -151,7 +153,7 @@ class _StripDetailPageState extends State<StripDetailPage>
       });
     } catch (e) {
       setState(() {
-        _error = e.toString();
+        _error = deviceErrorMessage(e, AppLocalizations.of(context));
         _loading = false;
       });
     }
@@ -203,7 +205,7 @@ class _StripDetailPageState extends State<StripDetailPage>
               _snack(timerSetMsg);
             } catch (e) {
               if (!mounted) return;
-              _snack(e.toString());
+              showDeviceError(e);
             }
           },
         ),
@@ -224,7 +226,7 @@ class _StripDetailPageState extends State<StripDetailPage>
         () => _state = _state?.copyWith(color: color, mode: mode, on: true),
       );
     } catch (e) {
-      _snack(e.toString());
+      showDeviceError(e);
     }
   }
 
@@ -368,7 +370,7 @@ class _StripDetailPageState extends State<StripDetailPage>
                         }
                         setState(() => _state = _state?.copyWith(on: v));
                       } catch (e) {
-                        _snack(e.toString());
+                        showDeviceError(e);
                       }
                     },
             ),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../utils/device_error_message.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/network/device_http_client.dart';
@@ -84,7 +86,7 @@ class _SwitchDetailPageState extends State<SwitchDetailPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = deviceErrorMessage(e, AppLocalizations.of(context));
         _loading = false;
       });
     }
@@ -103,7 +105,7 @@ class _SwitchDetailPageState extends State<SwitchDetailPage> {
       if (!mounted) return;
       setState(() => _state = _state?.copyWith(relay: s.relay) ?? s);
     } catch (e) {
-      _snack(e.toString());
+      showDeviceError(e);
     }
   }
 
@@ -261,7 +263,7 @@ class _SwitchDetailPageState extends State<SwitchDetailPage> {
               _snack(timerSetMsg);
             } catch (e) {
               if (!mounted) return;
-              _snack(e.toString());
+              showDeviceError(e);
             }
           },
         ),

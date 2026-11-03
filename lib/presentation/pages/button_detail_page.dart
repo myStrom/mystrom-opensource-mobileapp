@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../utils/device_error_message.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/network/device_http_client.dart';
@@ -175,7 +177,7 @@ class _ButtonDetailPageState extends State<ButtonDetailPage> {
       _snack(l10n.schemeUrlSaved(scheme, url));
       await _load();
     } catch (e) {
-      _snack(e.toString());
+      showDeviceError(e);
     }
   }
 
@@ -190,7 +192,7 @@ class _ButtonDetailPageState extends State<ButtonDetailPage> {
       _snack(l10n.actionRemoved(scheme));
       await _load();
     } catch (e) {
-      _snack(e.toString());
+      showDeviceError(e);
     }
   }
 }

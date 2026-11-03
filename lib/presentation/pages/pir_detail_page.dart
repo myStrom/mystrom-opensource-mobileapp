@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../utils/device_error_message.dart';
+
 import '../../core/network/device_http_client.dart';
 import '../../data/datasources/device_remote_ds.dart';
 import '../../data/models/pir_state.dart';
@@ -63,7 +65,7 @@ class _PirDetailPageState extends State<PirDetailPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = deviceErrorMessage(e, AppLocalizations.of(context));
         _loading = false;
       });
     }

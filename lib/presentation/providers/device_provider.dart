@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../../core/network/device_http_client.dart';
+import '../../core/network/device_auth.dart';
 import '../../core/network/udp_discovery.dart';
 import '../../data/datasources/device_remote_ds.dart';
 import '../../data/models/stored_device.dart';
@@ -22,7 +23,7 @@ class DeviceProvider extends ChangeNotifier {
   final Stream<List<DiscoveredDevice>> _discoveryStream;
   late final StreamSubscription<List<DiscoveredDevice>> _discoverySub;
   final DeviceRemoteDataSource _remote = DeviceRemoteDataSource(
-    DeviceHttpClient(),
+    DeviceHttpClient(promptForToken: false),
   );
   final Map<String, bool> _httpReachability = <String, bool>{};
   List<DiscoveredDevice> _lastDiscovered = const [];
@@ -76,6 +77,7 @@ class DeviceProvider extends ChangeNotifier {
 
     // Update stored devices with fresh IP/lastSeen.
     for (final d in discovered) {
+      DeviceAuth.shared?.bind(d.ip, d.mac);
       final s = _deviceRepo.getByMac(d.mac);
       if (s != null) {
         _deviceRepo.updateDiscoveryInfo(d.mac, d.ip, d.lastSeen);
@@ -211,7 +213,7 @@ class DeviceProvider extends ChangeNotifier {
       customName: customName ?? entity.customName,
       addedAt: entity.addedAt,
       room: entity.room,
-      token: entity.token,
+      token: DeviceAuth.shared?.tokenToRemember(entity.mac) ?? entity.token,
       colorValue: colorValue ?? entity.colorValue,
       favorite: favorite,
     );
@@ -221,6 +223,7 @@ class DeviceProvider extends ChangeNotifier {
 
   Future<void> removeDevice(String mac) async {
     await _deviceRepo.remove(mac);
+    DeviceAuth.shared?.forget(mac);
     _refresh();
   }
 

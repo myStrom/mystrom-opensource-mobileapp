@@ -17,12 +17,12 @@ import 'package:mystrom_local/data/models/scheduler_item.dart';
 /// EVERY timezone.
 void main() {
   SchedulerItem item(int hour, int minute, List<String> days) => SchedulerItem(
-        enable: true,
-        hour: hour,
-        minute: minute,
-        action: 'on',
-        days: days,
-      );
+    enable: true,
+    hour: hour,
+    minute: minute,
+    action: 'on',
+    days: days,
+  );
 
   test('localToUtc: crossing midnight backwards shifts the day back', () {
     final utc = SchedulerTimeConverter.localToUtc(item(0, 30, ['mon']));
@@ -60,23 +60,25 @@ void main() {
     expect(local.days, ['mon']);
   });
 
-  test('midnight boundary: no shift when the offset lands exactly on 00:00',
-      () {
-    final utc = SchedulerTimeConverter.localToUtc(item(0, 0, ['mon']));
-    final off = SchedulerTimeConverter.tzOffsetMin;
-    // 00:00 local minus a positive offset lands on the previous day.
-    if (off == 0) {
-      expect(utc.hour, 0);
-      expect(utc.minute, 0);
-      expect(utc.days, ['mon']);
-    } else {
-      // The resulting day must differ from Monday only if the shifted
-      // time is on a different calendar day than the local one.
-      final shifted = 0 * 60 + 0 - off;
-      final expectPrevDay = shifted < 0;
-      expect(utc.days, expectPrevDay ? ['sun'] : ['mon']);
-    }
-  });
+  test(
+    'midnight boundary: no shift when the offset lands exactly on 00:00',
+    () {
+      final utc = SchedulerTimeConverter.localToUtc(item(0, 0, ['mon']));
+      final off = SchedulerTimeConverter.tzOffsetMin;
+      // 00:00 local minus a positive offset lands on the previous day.
+      if (off == 0) {
+        expect(utc.hour, 0);
+        expect(utc.minute, 0);
+        expect(utc.days, ['mon']);
+      } else {
+        // The resulting day must differ from Monday only if the shifted
+        // time is on a different calendar day than the local one.
+        final shifted = 0 * 60 + 0 - off;
+        final expectPrevDay = shifted < 0;
+        expect(utc.days, expectPrevDay ? ['sun'] : ['mon']);
+      }
+    },
+  );
 
   test('maximum offset keeps time within 0:00-23:59', () {
     // 23:59 local -> shifted by any offset must still be a valid time.
@@ -97,11 +99,14 @@ void main() {
     // local 23:30 with a negative offset.
     if (off >= 60) {
       final utc = SchedulerTimeConverter.localToUtc(item(0, 30, ['mon']));
-      expect(utc.days, ['sun'], reason: 'UTC+$off: 00:30 local is previous day');
+      expect(utc.days, [
+        'sun',
+      ], reason: 'UTC+$off: 00:30 local is previous day');
     } else if (off <= -60) {
       final local = SchedulerTimeConverter.utcToLocal(item(23, 30, ['mon']));
-      expect(local.days, ['sun'],
-          reason: 'UTC$off: 23:30 UTC is next day in the west');
+      expect(local.days, [
+        'sun',
+      ], reason: 'UTC$off: 23:30 UTC is next day in the west');
     } else {
       // Zone too small to trigger a day shift at these times; assert the
       // invariant with a synthetic 6-hour offset instead is impossible
@@ -109,17 +114,19 @@ void main() {
     }
   });
 
-  test('week wraps: Saturday -> Sunday and back (regression, week boundary)',
-      () {
-    if (SchedulerTimeConverter.tzOffsetMin != 120) return;
-    // Monday 00:30 local (UTC+2) is Sunday 22:30 UTC; then utcToLocal
-    // must map Sunday 22:30 UTC back to Monday 00:30 — the two errors
-    // must not cancel out silently.
-    final round1 = SchedulerTimeConverter.localToUtc(item(0, 30, ['mon']));
-    expect(round1.days, ['sun']);
-    final round2 = SchedulerTimeConverter.utcToLocal(round1);
-    expect(round2.days, ['mon']);
-    expect(round2.hour, 0);
-    expect(round2.minute, 30);
-  });
+  test(
+    'week wraps: Saturday -> Sunday and back (regression, week boundary)',
+    () {
+      if (SchedulerTimeConverter.tzOffsetMin != 120) return;
+      // Monday 00:30 local (UTC+2) is Sunday 22:30 UTC; then utcToLocal
+      // must map Sunday 22:30 UTC back to Monday 00:30 — the two errors
+      // must not cancel out silently.
+      final round1 = SchedulerTimeConverter.localToUtc(item(0, 30, ['mon']));
+      expect(round1.days, ['sun']);
+      final round2 = SchedulerTimeConverter.utcToLocal(round1);
+      expect(round2.days, ['mon']);
+      expect(round2.hour, 0);
+      expect(round2.minute, 30);
+    },
+  );
 }

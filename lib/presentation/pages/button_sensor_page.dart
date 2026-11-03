@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../utils/device_error_message.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/network/device_http_client.dart';
@@ -76,7 +78,7 @@ class _ButtonSensorPageState extends State<ButtonSensorPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = deviceErrorMessage(e, AppLocalizations.of(context));
         _loading = false;
       });
     }
@@ -320,7 +322,7 @@ class _ButtonSensorPageState extends State<ButtonSensorPage> {
       _snack(l10n.refererActionUrlSaved(referer, action, url));
       await _loadActions();
     } catch (e) {
-      _snack(e.toString());
+      showDeviceError(e);
     }
   }
 
@@ -342,7 +344,7 @@ class _ButtonSensorPageState extends State<ButtonSensorPage> {
       _snack(l10n.refererActionUrlRemoved(referer, action));
       await _loadActions();
     } catch (e) {
-      _snack(e.toString());
+      showDeviceError(e);
     }
   }
 }

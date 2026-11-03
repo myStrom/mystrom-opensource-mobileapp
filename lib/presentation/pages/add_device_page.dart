@@ -16,6 +16,7 @@ import '../providers/device_provider.dart';
 import '../providers/provisioning_provider.dart';
 import '../utils/device_type_l10n.dart';
 import '../widgets/add_device_dialog.dart';
+import '../utils/device_error_message.dart';
 import '../widgets/discovered_device_card.dart';
 
 /// Host-side WiFi AP scan is only available on Android (iOS has no API for it).
@@ -72,10 +73,7 @@ class _DiscoveredTab extends StatelessWidget {
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(32),
-              child: Text(
-                l10n.noNewDevicesFound,
-                textAlign: TextAlign.center,
-              ),
+              child: Text(l10n.noNewDevicesFound, textAlign: TextAlign.center),
             ),
           );
         }
@@ -93,11 +91,12 @@ class _DiscoveredTab extends StatelessWidget {
                   builder: (_) => AddDeviceDialog(device: d),
                 );
                 if (result != null && context.mounted) {
-                  provider.addDevice(
+                  await provider.addDevice(
                     d,
                     customName: result.customName,
                     colorValue: result.colorValue,
                   );
+                  if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
@@ -263,9 +262,9 @@ class _SoftApTabState extends State<_SoftApTab> {
     );
     if (ok && context.mounted) {
       final l10n = AppLocalizations.of(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.credentialsSentSnackbar)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.credentialsSentSnackbar)));
     }
   }
 }
@@ -312,10 +311,7 @@ class _ApModeInstructions extends StatelessWidget {
                 const SizedBox(height: 12),
                 _InstructionBlock(
                   title: l10n.apModeBulbTitle,
-                  steps: [
-                    l10n.apModeBulbResetStep1,
-                    l10n.apModeBulbResetStep2,
-                  ],
+                  steps: [l10n.apModeBulbResetStep1, l10n.apModeBulbResetStep2],
                 ),
                 const SizedBox(height: 12),
                 _InstructionBlock(
@@ -516,10 +512,7 @@ class _ScanNetworksStep extends StatelessWidget {
             style: const TextStyle(color: Colors.red),
           )
         else if (provider.networks.isEmpty)
-          Text(
-            l10n.noNetworksFound,
-            style: const TextStyle(color: Colors.grey),
-          )
+          Text(l10n.noNetworksFound, style: const TextStyle(color: Colors.grey))
         else
           for (final n in provider.networks)
             ListTile(
@@ -638,9 +631,7 @@ class _CredentialsStep extends StatelessWidget {
           children: [
             TextField(
               controller: nameController,
-              decoration: InputDecoration(
-                labelText: l10n.deviceNameOptional,
-              ),
+              decoration: InputDecoration(labelText: l10n.deviceNameOptional),
             ),
             const SizedBox(height: 8),
             TextField(
@@ -888,7 +879,7 @@ String _provisionErrorMessage(
   ProvisioningProvider provider,
   AppLocalizations l10n,
 ) {
-  final err = provider.error!;
+  final err = deviceErrorMessage(provider.error, l10n);
   if (provider.scanWifiError) return l10n.couldNotScanWifi(err);
   return err;
 }
@@ -925,11 +916,7 @@ class _WpsTab extends StatelessWidget {
         const SizedBox(height: 12),
         _InstructionBlock(
           title: l10n.apModeBulbTitle,
-          steps: [
-            l10n.wpsBulbReset,
-            l10n.wpsBulbMode,
-            l10n.wpsResultHint,
-          ],
+          steps: [l10n.wpsBulbReset, l10n.wpsBulbMode, l10n.wpsResultHint],
         ),
         const SizedBox(height: 24),
         FilledButton.icon(
@@ -937,9 +924,9 @@ class _WpsTab extends StatelessWidget {
           icon: const Icon(Icons.wifi_tethering),
           label: Text(l10n.triggerWpsOnDevice),
           onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(l10n.wpsTriggerSnackbar)),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(l10n.wpsTriggerSnackbar)));
           },
         ),
       ],

@@ -23,6 +23,10 @@ class FakeDeviceState {
   final String model; // e.g. "WS2", "WRS"
   final String version; // firmware version
 
+  String token = '';
+  int authStatus = 404;
+  bool rejectTokenChange = false;
+  bool ignoreTokenChange = false;
   bool relay = false; // switch relay
   bool on = false; // strip/bulb on
   String color = '0;0;0'; // HSV string for strip/bulb
@@ -99,6 +103,19 @@ class FakeMystromServer {
   /// with HomeKit, where /identify is a HomeKit API endpoint that rejects
   /// non-HomeKit callers).
   bool rejectIdentify = false;
+  final Map<String, int> responseStatuses = {};
+  Duration responseDelay = Duration.zero;
+  Future<void> Function()? onAuthRejected;
+  final List<
+    ({
+      String method,
+      String path,
+      Map<String, String> query,
+      String? token,
+      String? body,
+    })
+  >
+  requests = [];
 
   /// The device this server emulates.
   FakeDeviceState register(FakeDeviceState state) {
@@ -142,6 +159,43 @@ class FakeMystromServer {
       if (req.method == 'POST') {
         final bytes = await req.fold<List<int>>([], (a, b) => a..addAll(b));
         body = String.fromCharCodes(bytes);
+      }
+
+      requests.add((
+        method: req.method,
+        path: path,
+        query: query,
+        token: req.headers.value('Token'),
+        body: body,
+      ));
+      if (st.token.isNotEmpty && req.headers.value('Token') != st.token) {
+        await onAuthRejected?.call();
+        req.response.statusCode = st.authStatus;
+        await req.response.close();
+        return;
+      }
+      if (responseDelay != Duration.zero) {
+        await Future<void>.delayed(responseDelay);
+      }
+      if (responseStatuses.containsKey(path)) {
+        req.response.statusCode = responseStatuses[path]!;
+        await req.response.close();
+        return;
+      }
+      if (path == '/api/v1/settings' && req.method == 'POST') {
+        if (st.rejectTokenChange) {
+          req.response.statusCode = 400;
+          await req.response.close();
+          return;
+        }
+        if (!st.ignoreTokenChange) {
+          final fields = req.headers.contentType?.mimeType == 'application/json'
+              ? jsonDecode(body ?? '{}') as Map<String, dynamic>
+              : Uri.splitQueryString(body ?? '');
+          st.token = fields['token'] as String? ?? st.token;
+        }
+        await _json(req, {});
+        return;
       }
 
       // Strip channel mode set: POST /api/v1/ch_mode/<mode> (the path

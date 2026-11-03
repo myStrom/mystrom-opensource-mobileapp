@@ -1320,4 +1320,86 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get totalEnergyTitleCase => 'Total Energy';
+
+  @override
+  String get deviceToken => 'Device token';
+
+  @override
+  String get tokenRequired => 'Token required';
+
+  @override
+  String get tokenRequiredMessage =>
+      'The device rejected access. Enter its token to connect. If the REST API is disabled, enable it on the device first.';
+
+  @override
+  String get rememberToken => 'Save token on this device';
+
+  @override
+  String get showToken => 'Show token';
+
+  @override
+  String get hideToken => 'Hide token';
+
+  @override
+  String get tokenInvalid => 'Use 1–255 printable ASCII characters.';
+
+  @override
+  String get tokenRejected => 'Token rejected or device API unavailable.';
+
+  @override
+  String get tokenConnectionFailed =>
+      'Could not verify the token. Check the connection and try again.';
+
+  @override
+  String get changeDeviceToken => 'Set device token';
+
+  @override
+  String get tokenSettingsHint =>
+      'Set a new token on the device and save it in the app. Leave empty to remove token protection.';
+
+  @override
+  String get tokenUpdated => 'Device token updated and saved';
+
+  @override
+  String get tokenUpdateFailed =>
+      'Token change could not be confirmed. Check device access before trying again.';
+
+  @override
+  String get deviceRequestTimeout =>
+      'The device did not respond in time. Try again.';
+
+  @override
+  String get deviceConnectionError =>
+      'Cannot connect to the device. Check its power and Wi-Fi connection.';
+
+  @override
+  String get deviceCertificateError =>
+      'The secure connection could not be verified.';
+
+  @override
+  String get deviceRequestCancelled => 'Operation cancelled.';
+
+  @override
+  String get deviceFeatureUnavailable =>
+      'This function is unavailable. Check device access and API settings.';
+
+  @override
+  String get deviceServiceError =>
+      'The device is temporarily unavailable. Try again.';
+
+  @override
+  String get deviceRequestRejected =>
+      'The device rejected the change. Check the entered values.';
+
+  @override
+  String get deviceInvalidResponse =>
+      'The device returned an unexpected response. Try again.';
+
+  @override
+  String get deviceOperationFailed =>
+      'The operation could not be completed. Try again.';
+
+  @override
+  String get wifiPermissionRequired =>
+      'Allow Nearby Wi-Fi devices or Location access in the app settings to scan Wi-Fi.';
 }

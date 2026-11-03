@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../utils/device_error_message.dart';
+
 import '../../core/network/device_http_client.dart';
 import '../../data/datasources/device_remote_ds.dart';
 import '../../domain/entities/device_entity.dart';
@@ -64,7 +66,7 @@ class _StripSettingsPageState extends State<StripSettingsPage> {
       });
     } catch (e) {
       setState(() {
-        _error = e.toString();
+        _error = deviceErrorMessage(e, AppLocalizations.of(context));
         _loading = false;
       });
     }
@@ -77,15 +79,17 @@ class _StripSettingsPageState extends State<StripSettingsPage> {
       setState(() => _chMode = mode);
       if (mounted) {
         final l10n = AppLocalizations.of(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.channelModeSet(mode))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.channelModeSet(mode))));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(deviceErrorMessage(e, AppLocalizations.of(context))),
+          ),
+        );
       }
     }
   }

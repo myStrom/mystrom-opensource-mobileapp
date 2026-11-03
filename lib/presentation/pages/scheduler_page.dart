@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../utils/device_error_message.dart';
+
 import '../../core/network/device_http_client.dart';
 import '../../core/utils/device_type.dart';
 import '../../core/utils/scheduler_time.dart';
@@ -118,7 +120,7 @@ class _SchedulerPageState extends State<SchedulerPage> {
       });
     } catch (e) {
       setState(() {
-        _error = e.toString();
+        _error = deviceErrorMessage(e, AppLocalizations.of(context));
         _loading = false;
       });
     }
@@ -176,7 +178,7 @@ class _SchedulerPageState extends State<SchedulerPage> {
       });
       _snack(l10n.scheduleSaved);
     } catch (e) {
-      _snack(l10n.saveFailed(e.toString()));
+      _snack(l10n.saveFailed(deviceErrorMessage(e, l10n)));
     }
   }
 

@@ -91,6 +91,18 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  Future<void> connectManually(WidgetTester tester) async {
+    await tester.tap(find.byKey(const Key('softap_manual_connected')));
+    // The optional AP identity probe can time out on each of two info URLs.
+    // Wait for the actual stage transition instead of an animation-only settle.
+    final scan = find.byKey(const Key('softap_scan_wifi'));
+    for (var i = 0; i < 200 && scan.evaluate().isEmpty; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(scan, findsOneWidget);
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('SoftAP tab shows the AP-selection step', (tester) async {
     await pumpApp(tester);
     await openSoftApTab(tester);
@@ -110,8 +122,7 @@ void main() {
     await pumpApp(tester);
     await openSoftApTab(tester);
 
-    await tester.tap(find.byKey(const Key('softap_manual_connected')));
-    await tester.pumpAndSettle();
+    await connectManually(tester);
 
     // Scan step should now be visible with the Scan WiFi button.
     expect(find.byKey(const Key('softap_scan_wifi')), findsOneWidget);
@@ -124,8 +135,7 @@ void main() {
     await openSoftApTab(tester);
 
     // Manual AP entry.
-    await tester.tap(find.byKey(const Key('softap_manual_connected')));
-    await tester.pumpAndSettle();
+    await connectManually(tester);
 
     // Point the wizard at the fake server.
     await tester.enterText(
@@ -147,8 +157,7 @@ void main() {
     await openSoftApTab(tester);
 
     // Manual AP entry → skip scan → credentials step.
-    await tester.tap(find.byKey(const Key('softap_manual_connected')));
-    await tester.pumpAndSettle();
+    await connectManually(tester);
     await tester.tap(find.byKey(const Key('softap_skip_scan')));
     await tester.pumpAndSettle();
 
@@ -171,6 +180,9 @@ void main() {
       '${apServer.host}:${apServer.port}',
     );
 
+    apState.connectRequested = false;
+    apState.connectBody = null;
+    final before = apServer.requests.length;
     expect(apState.connectRequested, isFalse);
     await tester.tap(find.byKey(const Key('softap_send_credentials')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
@@ -178,6 +190,12 @@ void main() {
     expect(apState.connectRequested, isTrue);
     expect(apState.connectBody?['ssid'], 'HomeWiFi');
     expect(apState.connectBody?['passwd'], 's3cret');
+    final sent = apServer.requests
+        .skip(before)
+        .where((r) => r.path == '/api/v1/connect')
+        .toList();
+    expect(sent, hasLength(1));
+    expect(sent.single.method, 'POST');
   });
 
   testWidgets('legacy firmware: 400 on roaming body → retry without roaming', (
@@ -186,13 +204,15 @@ void main() {
     // First /api/v1/connect (with roaming) returns 400; the second
     // (without roaming) succeeds.
     apState.rejectConnectCount = 1;
+    apState.connectRequested = false;
+    apState.connectBody = null;
+    final before = apServer.requests.length;
     addTearDown(() => apState.rejectConnectCount = 0);
 
     await pumpApp(tester);
     await openSoftApTab(tester);
 
-    await tester.tap(find.byKey(const Key('softap_manual_connected')));
-    await tester.pumpAndSettle();
+    await connectManually(tester);
     await tester.tap(find.byKey(const Key('softap_skip_scan')));
     await tester.pumpAndSettle();
 
@@ -220,5 +240,13 @@ void main() {
     expect(apState.connectRequested, isTrue);
     expect(apState.connectBody?['ssid'], 'LegacyNet');
     expect(apState.connectBody?['passwd'], 'pw');
+    final sent = apServer.requests
+        .skip(before)
+        .where((r) => r.path == '/api/v1/connect')
+        .toList();
+    expect(sent, hasLength(2));
+    expect(sent.every((r) => r.method == 'POST'), isTrue);
+    expect(sent.first.body, contains('roaming'));
+    expect(sent.last.body, isNot(contains('roaming')));
   });
 }

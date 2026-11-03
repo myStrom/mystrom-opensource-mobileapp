@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
+import '../utils/device_error_message.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/network/device_http_client.dart';
@@ -63,7 +65,7 @@ class _DeviceStatusCardState extends State<DeviceStatusCard> {
   void initState() {
     super.initState();
     _remote = DeviceRemoteDataSource(
-      DeviceHttpClient(token: widget.device.token),
+      DeviceHttpClient(token: widget.device.token, promptForToken: false),
     );
     if (widget.showState) {
       _fetchState();
@@ -113,41 +115,45 @@ class _DeviceStatusCardState extends State<DeviceStatusCard> {
       _snack(l10n.deviceOffline);
       return;
     }
+    final client = DeviceHttpClient(token: d.token);
+    final remote = DeviceRemoteDataSource(client);
     try {
       if (d.type.isSwitch) {
-        final s = await _remote.toggleRelay(ip);
+        final s = await remote.toggleRelay(ip);
         updateActiveState(active: s.relay);
       } else if (d.type.isStrip) {
-        final s = await _remote.getStripState(ip);
+        final s = await remote.getStripState(ip);
         if (s.on) {
-          await _remote.setStripState(ip, action: 'off');
+          await remote.setStripState(ip, action: 'off');
           updateActiveState(active: false);
         } else {
-          await _remote.setStripState(ip, action: 'on');
+          await remote.setStripState(ip, action: 'on');
           updateActiveState(active: true);
         }
       } else if (d.type.isDimmer) {
-        final s = await _remote.getDimmerState(ip);
+        final s = await remote.getDimmerState(ip);
         if (s.on) {
-          await _remote.setDimmerState(ip, action: 'off');
+          await remote.setDimmerState(ip, action: 'off');
           updateActiveState(active: false);
         } else {
-          await _remote.setDimmerState(ip, action: 'on');
+          await remote.setDimmerState(ip, action: 'on');
           updateActiveState(active: true, dimmerValue: s.value);
         }
       } else if (d.type.isBulb) {
-        final s = await _remote.getBulbState(ip);
+        final s = await remote.getBulbState(ip);
         if (s.on) {
-          await _remote.setBulbState(ip, action: 'off');
+          await remote.setBulbState(ip, action: 'off');
           updateActiveState(active: false);
         } else {
-          await _remote.setBulbState(ip, action: 'on');
+          await remote.setBulbState(ip, action: 'on');
           updateActiveState(active: true);
         }
       }
     } catch (e) {
       // Show the user why nothing happened; next poll corrects the state.
-      _snack(l10n.couldNotReachDevice(e.toString()));
+      _snack(deviceErrorMessage(e, l10n));
+    } finally {
+      client.dispose();
     }
   }
 

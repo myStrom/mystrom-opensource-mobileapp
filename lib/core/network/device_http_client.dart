@@ -5,24 +5,123 @@ import 'package:dio/io.dart';
 import 'package:flutter/foundation.dart';
 
 import '../config/app_config.dart';
+import 'device_auth.dart';
 
 /// Thin wrapper around [Dio] for talking to myStrom devices on port 80.
 ///
 /// Adds optional `Token` auth. Note: we do NOT send an `Origin` header —
 /// myStrom firmware rejects requests with Origin/Referer with 404.
 class DeviceHttpClient {
-  DeviceHttpClient({this._token, Duration? timeout})
-    : _timeout = timeout ?? AppConfig.httpTimeout,
-      _dio = Dio(
-        BaseOptions(
-          connectTimeout: timeout ?? AppConfig.httpTimeout,
-          receiveTimeout: timeout ?? AppConfig.httpTimeout,
-          responseType: ResponseType.json,
-        ),
-      ) {
+  DeviceHttpClient({
+    this._token,
+    Duration? timeout,
+    bool authentication = true,
+    bool promptForToken = true,
+  }) : _timeout = timeout ?? AppConfig.httpTimeout,
+       _dio = Dio(
+         BaseOptions(
+           connectTimeout: timeout ?? AppConfig.httpTimeout,
+           receiveTimeout: timeout ?? AppConfig.httpTimeout,
+           responseType: ResponseType.json,
+           followRedirects: false,
+         ),
+       ) {
     _dio.httpClientAdapter = IOHttpClientAdapter(
       createHttpClient: _createHttpClient,
     );
+    if (authentication) {
+      _dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            final auth = DeviceAuth.shared;
+            if (auth != null) {
+              final token = auth.tokenFor(options.uri.authority);
+              options.headers.remove('Token');
+              if (token != null && token.isNotEmpty) {
+                options.headers['Token'] = token;
+              }
+            }
+            handler.next(options);
+          },
+          onError: (error, handler) async {
+            final auth = DeviceAuth.shared;
+            final options = error.requestOptions;
+            if (auth == null ||
+                !promptForToken ||
+                options.extra['authAttempted'] == true ||
+                !DeviceAuth.isAccessRejection(error)) {
+              handler.next(error);
+              return;
+            }
+            final host = options.uri.authority;
+            try {
+              // Missing optional endpoints must not open credential dialogs.
+              if (error.response?.statusCode == 404 &&
+                  await verifyToken(
+                    host,
+                    options.headers['Token'] as String?,
+                  )) {
+                handler.next(error);
+                return;
+              }
+              options.extra['authAttempted'] = true;
+              final current = auth.tokenFor(host);
+              final changed =
+                  current != options.headers['Token'] &&
+                  await verifyToken(host, current);
+              final accepted =
+                  changed ||
+                  await auth.authenticate(
+                    host,
+                    verify: (token) => verifyToken(host, token),
+                  );
+              if (!accepted) {
+                handler.next(error);
+                return;
+              }
+              handler.resolve(await _dio.fetch<dynamic>(options));
+            } on DioException catch (retryError) {
+              handler.next(retryError);
+            } catch (_) {
+              handler.next(error);
+            }
+          },
+        ),
+      );
+    }
+  }
+
+  Future<bool> verifyToken(String host, String? token) async {
+    final client = DeviceHttpClient(
+      token: token,
+      authentication: false,
+      timeout: _timeout,
+    );
+    try {
+      for (final path in ['/info', '/api/v1/info']) {
+        try {
+          final response = await client.get<dynamic>(host, path);
+          final data = response.data;
+          if (data is! Map || data['mac'] is! String) continue;
+          final mac = (data['mac'] as String).replaceAll(':', '').toUpperCase();
+          final identity = DeviceAuth.shared
+              ?.identityFor(host)
+              .replaceAll(':', '')
+              .toUpperCase();
+          if (identity != null &&
+              RegExp(r'^[0-9A-F]{12}$').hasMatch(identity) &&
+              mac != identity) {
+            return false;
+          }
+          return mac.isNotEmpty;
+        } on DioException catch (e) {
+          if (!DeviceAuth.isAccessRejection(e)) rethrow;
+        }
+      }
+      return false;
+    } finally {
+      client.dispose();
+    }
   }
 
   final String? _token;
@@ -60,7 +159,7 @@ class DeviceHttpClient {
     ResponseType? responseType,
   }) {
     final url = '${_base(ip)}$path';
-    debugPrint('[HTTP] GET $url query=$query');
+    debugPrint('[HTTP] GET');
     return _executeWithRetry<T>(() {
       return _dio.get<T>(
         url,
@@ -79,7 +178,7 @@ class DeviceHttpClient {
     String? contentType,
   }) {
     final url = '${_base(ip)}$path';
-    debugPrint('[HTTP] POST $url body=$body query=$query');
+    debugPrint('[HTTP] POST');
     return _executeWithRetry<T>(() {
       return _dio.post<T>(
         url,
@@ -101,7 +200,7 @@ class DeviceHttpClient {
     Map<String, dynamic> fields,
   ) {
     final url = '${_base(ip)}$path';
-    debugPrint('[HTTP] POST_FORM $url body=$fields');
+    debugPrint('[HTTP] POST');
     return _executeWithRetry<dynamic>(() {
       return _dio.post(
         url,
@@ -120,7 +219,7 @@ class DeviceHttpClient {
   /// [body] should already be in `key=value&key=value` format.
   Future<Response<dynamic>> postRawForm(String ip, String path, String body) {
     final url = '${_base(ip)}$path';
-    debugPrint('[HTTP] POST_RAW_FORM $url body=$body');
+    debugPrint('[HTTP] POST');
     return _executeWithRetry<dynamic>(() {
       return _dio.post(
         url,
@@ -136,7 +235,7 @@ class DeviceHttpClient {
   /// Send a raw text body (used by button-se action URLs).
   Future<Response<dynamic>> postRawText(String ip, String path, String text) {
     final url = '${_base(ip)}$path';
-    debugPrint('[HTTP] POST_RAW_TEXT $url body=$text');
+    debugPrint('[HTTP] POST');
     return _executeWithRetry<dynamic>(() {
       return _dio.post(
         url,
@@ -157,7 +256,7 @@ class DeviceHttpClient {
     String rawQuery,
   ) {
     final url = '${_base(ip)}$path?$rawQuery';
-    debugPrint('[HTTP] POST_RAW_QUERY $url');
+    debugPrint('[HTTP] POST');
     return _executeWithRetry<dynamic>(() {
       return _dio.post(url, options: Options(headers: _auth()));
     });

@@ -219,7 +219,7 @@ class _DeviceListPageState extends State<DeviceListPage> {
       builder: (_) => AddDeviceDialog(device: d),
     );
     if (result != null && context.mounted) {
-      context.read<DeviceProvider>().addDevice(
+      await context.read<DeviceProvider>().addDevice(
         d,
         customName: result.customName,
         colorValue: result.colorValue,
@@ -509,7 +509,10 @@ class _AddSceneButton extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 l10n.add,
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -687,7 +690,9 @@ class _PowerSummaryCardState extends State<_PowerSummaryCard> {
       _loading = true;
       _total = null;
     });
-    final remote = DeviceRemoteDataSource(DeviceHttpClient());
+    final remote = DeviceRemoteDataSource(
+      DeviceHttpClient(promptForToken: false),
+    );
     var sum = 0.0;
     await Future.wait(
       widget.devices.map((d) async {

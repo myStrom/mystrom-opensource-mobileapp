@@ -835,5 +835,28 @@
       }
     }
   },
-  "totalEnergyTitleCase": "Total Energy"
+  "totalEnergyTitleCase": "Total Energy",
+  "deviceToken": "Device token",
+  "tokenRequired": "Token required",
+  "tokenRequiredMessage": "The device rejected access. Enter its token to connect. If the REST API is disabled, enable it on the device first.",
+  "rememberToken": "Save token on this device",
+  "showToken": "Show token",
+  "hideToken": "Hide token",
+  "tokenInvalid": "Use 1–255 printable ASCII characters.",
+  "tokenRejected": "Token rejected or device API unavailable.",
+  "tokenConnectionFailed": "Could not verify the token. Check the connection and try again.",
+  "changeDeviceToken": "Set device token",
+  "tokenSettingsHint": "Set a new token on the device and save it in the app. Leave empty to remove token protection.",
+  "tokenUpdated": "Device token updated and saved",
+  "tokenUpdateFailed": "Token change could not be confirmed. Check device access before trying again.",
+  "deviceRequestTimeout": "The device did not respond in time. Try again.",
+  "deviceConnectionError": "Cannot connect to the device. Check its power and Wi-Fi connection.",
+  "deviceCertificateError": "The secure connection could not be verified.",
+  "deviceRequestCancelled": "Operation cancelled.",
+  "deviceFeatureUnavailable": "This function is unavailable. Check device access and API settings.",
+  "deviceServiceError": "The device is temporarily unavailable. Try again.",
+  "deviceRequestRejected": "The device rejected the change. Check the entered values.",
+  "deviceInvalidResponse": "The device returned an unexpected response. Try again.",
+  "deviceOperationFailed": "The operation could not be completed. Try again.",
+  "wifiPermissionRequired": "Allow Nearby Wi-Fi devices or Location access in the app settings to scan Wi-Fi."
 }

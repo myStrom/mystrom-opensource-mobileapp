@@ -73,8 +73,8 @@ class ProvisioningProvider extends ChangeNotifier {
   List<WifiNetworkModel> _networks = const [];
   List<WifiNetworkModel> get networks => _networks;
 
-  String? _error;
-  String? get error => _error;
+  Object? _error;
+  Object? get error => _error;
 
   /// True when [_error] is the detail from a host WiFi scan failure
   /// (localize with [AppLocalizations.couldNotScanWifi] in the UI).
@@ -100,11 +100,11 @@ class ProvisioningProvider extends ChangeNotifier {
       debugPrint(
         '[provision] scanForAps PlatformException: ${e.code} ${e.message}',
       );
-      _error = e.message ?? e.code;
+      _error = e;
     } catch (e) {
       debugPrint('[provision] scanForAps error: $e');
       _scanWifiError = true;
-      _error = e.toString();
+      _error = e;
     } finally {
       _busy = false;
       notifyListeners();
@@ -167,7 +167,7 @@ class ProvisioningProvider extends ChangeNotifier {
       _networks = await _usecase.scanNetworks(ip);
       _stage = ProvisioningStage.enterCredentials;
     } catch (e) {
-      _error = e.toString();
+      _error = e;
       _stage = ProvisioningStage.error;
     } finally {
       _busy = false;
@@ -226,11 +226,11 @@ class ProvisioningProvider extends ChangeNotifier {
         _stage = ProvisioningStage.done;
         return true;
       }
-      _error = e.toString();
+      _error = e;
       _stage = ProvisioningStage.error;
       return false;
     } catch (e) {
-      _error = e.toString();
+      _error = e;
       _stage = ProvisioningStage.error;
       return false;
     } finally {
@@ -256,7 +256,7 @@ class ProvisioningProvider extends ChangeNotifier {
       await _usecase.triggerWps(ip);
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = e;
       return false;
     } finally {
       _busy = false;

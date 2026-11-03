@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../utils/device_error_message.dart';
+
 import '../../core/network/api_endpoints.dart';
 import '../../core/network/device_http_client.dart';
 import '../../data/datasources/device_remote_ds.dart';
@@ -102,7 +104,7 @@ class _BulbDetailPageState extends State<BulbDetailPage>
           _refresh();
         })
         .catchError((e) {
-          _snack(e.toString());
+          showDeviceError(e);
           return null;
         });
   }
@@ -142,7 +144,7 @@ class _BulbDetailPageState extends State<BulbDetailPage>
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = deviceErrorMessage(e, AppLocalizations.of(context));
         _loading = false;
       });
     }
@@ -188,7 +190,7 @@ class _BulbDetailPageState extends State<BulbDetailPage>
         () => _state = _state?.copyWith(color: color, mode: mode, on: true),
       );
     } catch (e) {
-      _snack(e.toString());
+      showDeviceError(e);
     }
   }
 
@@ -234,7 +236,7 @@ class _BulbDetailPageState extends State<BulbDetailPage>
               _snack(timerSetMsg);
             } catch (e) {
               if (!mounted) return;
-              _snack(e.toString());
+              showDeviceError(e);
             }
           },
         ),
@@ -305,7 +307,7 @@ class _BulbDetailPageState extends State<BulbDetailPage>
                         }
                         setState(() => _state = _state?.copyWith(on: v));
                       } catch (e) {
-                        _snack(e.toString());
+                        showDeviceError(e);
                       }
                     },
             ),

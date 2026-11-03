@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../core/network/api_endpoints.dart';
 import '../../core/network/device_http_client.dart';
+import '../../core/network/device_auth.dart';
 import '../../core/utils/device_type.dart';
 import '../models/action_url_config.dart';
 import '../models/bulb_state.dart';
@@ -58,16 +59,39 @@ class DeviceRemoteDataSource {
     return null;
   }
 
+  /// Change the device credential; an empty value disables token protection.
+  Future<void> setToken(String ip, String token) async {
+    try {
+      await _client.post(ip, '/api/v1/settings', body: {'token': token});
+    } on DioException catch (error) {
+      if (!const [400, 415, 422].contains(error.response?.statusCode)) rethrow;
+      await _client.postForm(ip, '/api/v1/settings', {'token': token});
+    }
+  }
+
   Future<DeviceInfoModel> getInfo(String ip) async {
     // Some firmware versions expose /api/v1/info instead of /info.
     // Try /info first, fall back to /api/v1/info.
     try {
       final res = await _client.get(ip, ApiEndpoints.info);
-      return DeviceInfoModel.fromJson(res.data as Map<String, dynamic>);
-    } catch (_) {
+      return _readInfo(ip, res.data as Map<String, dynamic>);
+    } catch (error) {
+      if (error is DioException &&
+          error.requestOptions.extra['authAttempted'] == true) {
+        rethrow;
+      }
       final res = await _client.get(ip, ApiEndpoints.apiV1Info);
-      return DeviceInfoModel.fromJson(res.data as Map<String, dynamic>);
+      return _readInfo(ip, res.data as Map<String, dynamic>);
     }
+  }
+
+  DeviceInfoModel _readInfo(String ip, Map<String, dynamic> data) {
+    final info = DeviceInfoModel.fromJson(data);
+    final auth = DeviceAuth.shared;
+    if (auth != null && auth.identityFor(ip) == ip && info.mac.isNotEmpty) {
+      auth.bind(ip, info.mac);
+    }
+    return info;
   }
 
   /// Fetch `/api/v1/info` with a short timeout, suitable for probing a

@@ -17,19 +17,19 @@ import 'package:mystrom_local/presentation/widgets/color_picker_widget.dart';
 
 /// Minimal app shell providing the l10n delegates (en) around [child].
 Widget _wrap(Widget child) => MaterialApp(
-      locale: const Locale('en'),
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: Scaffold(body: child),
-    );
+  locale: const Locale('en'),
+  localizationsDelegates: AppLocalizations.localizationsDelegates,
+  supportedLocales: AppLocalizations.supportedLocales,
+  home: Scaffold(body: child),
+);
 
 DeviceEntity _bulb(String ip) => DeviceEntity(
-      mac: 'AA:BB:CC:DD:EE:FF',
-      name: 'Test Bulb',
-      type: DeviceType.bulb,
-      lastKnownIp: ip,
-      addedAt: DateTime(2026, 1, 1),
-    );
+  mac: 'AA:BB:CC:DD:EE:FF',
+  name: 'Test Bulb',
+  type: DeviceType.bulb,
+  lastKnownIp: ip,
+  addedAt: DateTime(2026, 1, 1),
+);
 
 void main() {
   group('ColorPickerWidget', () {
@@ -47,12 +47,16 @@ void main() {
       );
 
       await tester.pump(const Duration(milliseconds: 500));
-      expect(emitted, isNull,
-          reason: 'no interaction happened — nothing should be emitted');
+      expect(
+        emitted,
+        isNull,
+        reason: 'no interaction happened — nothing should be emitted',
+      );
     });
 
-    testWidgets('emits clamped H;S;V when the hue slider moves to max',
-        (tester) async {
+    testWidgets('emits clamped H;S;V when the hue slider moves to max', (
+      tester,
+    ) async {
       String? emitted;
       await tester.pumpWidget(
         _wrap(
@@ -79,8 +83,11 @@ void main() {
       expect(emitted, isNotNull, reason: 'a drag must trigger an emission');
       final parts = emitted!.split(';');
       expect(parts.length, 3, reason: 'H;S;V format expected: $emitted');
-      expect(parts[0], '359',
-          reason: 'hue at slider max must be 359, got: $emitted');
+      expect(
+        parts[0],
+        '359',
+        reason: 'hue at slider max must be 359, got: $emitted',
+      );
       expect(parts[1], '50');
       expect(parts[2], '50');
 
@@ -88,17 +95,13 @@ void main() {
       expect(find.text('Hue: 359°'), findsOneWidget);
     });
 
-    testWidgets('clamps a device hue of 360 down to 359 on init',
-        (tester) async {
+    testWidgets('clamps a device hue of 360 down to 359 on init', (
+      tester,
+    ) async {
       // A device reporting hue 360 (wrap-around value) must render the
       // slider at 359, not out of range.
       await tester.pumpWidget(
-        _wrap(
-          ColorPickerWidget(
-            initialHue: 360,
-            onColorChanged: (_) {},
-          ),
-        ),
+        _wrap(ColorPickerWidget(initialHue: 360, onColorChanged: (_) {})),
       );
 
       final slider = tester.widget<Slider>(find.byType(Slider).first);
@@ -109,8 +112,9 @@ void main() {
   });
 
   group('ActionUrlPicker', () {
-    testWidgets('generates a color action URL with sanitized HSV',
-        (tester) async {
+    testWidgets('generates a color action URL with sanitized HSV', (
+      tester,
+    ) async {
       String? generated;
       final bulb = _bulb('192.168.1.50');
 
@@ -165,17 +169,25 @@ void main() {
       await tester.tap(find.text('Assign'));
       await tester.pumpAndSettle();
 
-      expect(generated, isNotNull,
-          reason: 'Assign must close the dialog with a URL');
-      expect(generated, contains('color=359;100;100'),
-          reason: 'hue 400 must be sanitized to 359 in the URL, '
-              'got: $generated');
+      expect(
+        generated,
+        isNotNull,
+        reason: 'Assign must close the dialog with a URL',
+      );
+      expect(
+        generated,
+        contains('color=359;100;100'),
+        reason:
+            'hue 400 must be sanitized to 359 in the URL, '
+            'got: $generated',
+      );
       expect(generated, contains('post://192.168.1.50/api/v1/device/self'));
       expect(generated, contains('action=color'));
     });
 
-    testWidgets('rejects a malformed HSV color instead of inventing one',
-        (tester) async {
+    testWidgets('rejects a malformed HSV color instead of inventing one', (
+      tester,
+    ) async {
       String? generated;
       final bulb = _bulb('192.168.1.50');
 
@@ -225,12 +237,16 @@ void main() {
       await tester.tap(find.text('Assign'));
       await tester.pumpAndSettle();
 
-      expect(generated, isNull,
-          reason: 'malformed HSV must NOT produce a URL');
-      expect(find.text('Invalid color. Use H;S;V (e.g. 120;100;100).'),
-          findsOneWidget);
-      expect(find.text('open'), findsOneWidget,
-          reason: 'the dialog must still be open showing the error');
+      expect(generated, isNull, reason: 'malformed HSV must NOT produce a URL');
+      expect(
+        find.text('Invalid color. Use H;S;V (e.g. 120;100;100).'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('open'),
+        findsOneWidget,
+        reason: 'the dialog must still be open showing the error',
+      );
 
       // Fixing the input clears the error and generates the URL.
       await tester.enterText(

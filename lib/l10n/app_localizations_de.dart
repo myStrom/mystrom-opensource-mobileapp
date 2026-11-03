@@ -1324,6 +1324,89 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get totalEnergyTitleCase => 'Gesamtenergie';
+
+  @override
+  String get deviceToken => 'Geräte-Token';
+
+  @override
+  String get tokenRequired => 'Token erforderlich';
+
+  @override
+  String get tokenRequiredMessage =>
+      'Das Gerät hat den Zugriff abgelehnt. Gib seinen Token ein. Wenn die REST-API deaktiviert ist, aktiviere sie zuerst am Gerät.';
+
+  @override
+  String get rememberToken => 'Token auf diesem Gerät speichern';
+
+  @override
+  String get showToken => 'Token anzeigen';
+
+  @override
+  String get hideToken => 'Token ausblenden';
+
+  @override
+  String get tokenInvalid => 'Verwende 1–255 druckbare ASCII-Zeichen.';
+
+  @override
+  String get tokenRejected =>
+      'Token abgelehnt oder Geräte-API nicht verfügbar.';
+
+  @override
+  String get tokenConnectionFailed =>
+      'Token konnte nicht geprüft werden. Prüfe die Verbindung und versuche es erneut.';
+
+  @override
+  String get changeDeviceToken => 'Geräte-Token setzen';
+
+  @override
+  String get tokenSettingsHint =>
+      'Setze einen neuen Token am Gerät und speichere ihn in der App. Leer lassen, um den Token-Schutz zu entfernen.';
+
+  @override
+  String get tokenUpdated => 'Geräte-Token aktualisiert und gespeichert';
+
+  @override
+  String get tokenUpdateFailed =>
+      'Token-Änderung konnte nicht bestätigt werden. Prüfe den Gerätezugriff, bevor du es erneut versuchst.';
+
+  @override
+  String get deviceRequestTimeout =>
+      'Das Gerät hat nicht rechtzeitig geantwortet. Versuche es erneut.';
+
+  @override
+  String get deviceConnectionError =>
+      'Keine Verbindung zum Gerät. Prüfe die Stromversorgung und die WLAN-Verbindung.';
+
+  @override
+  String get deviceCertificateError =>
+      'Die sichere Verbindung konnte nicht geprüft werden.';
+
+  @override
+  String get deviceRequestCancelled => 'Vorgang abgebrochen.';
+
+  @override
+  String get deviceFeatureUnavailable =>
+      'Diese Funktion ist nicht verfügbar. Prüfe den Gerätezugriff und die API-Einstellungen.';
+
+  @override
+  String get deviceServiceError =>
+      'Das Gerät ist vorübergehend nicht verfügbar. Versuche es erneut.';
+
+  @override
+  String get deviceRequestRejected =>
+      'Das Gerät hat die Änderung abgelehnt. Prüfe die eingegebenen Werte.';
+
+  @override
+  String get deviceInvalidResponse =>
+      'Das Gerät hat eine unerwartete Antwort gesendet. Versuche es erneut.';
+
+  @override
+  String get deviceOperationFailed =>
+      'Der Vorgang konnte nicht abgeschlossen werden. Versuche es erneut.';
+
+  @override
+  String get wifiPermissionRequired =>
+      'Erlaube in den App-Einstellungen den Zugriff auf WLAN-Geräte in der Nähe oder den Standort, um WLANs zu suchen.';
 }
 
 /// The translations for German, as used in Switzerland (`de_CH`).
@@ -1459,4 +1542,87 @@ class AppLocalizationsDeCh extends AppLocalizationsDe {
 
   @override
   String get colorWhite => 'Weiss';
+
+  @override
+  String get deviceToken => 'Geräte-Token';
+
+  @override
+  String get tokenRequired => 'Token erforderlich';
+
+  @override
+  String get tokenRequiredMessage =>
+      'Das Gerät hat den Zugriff abgelehnt. Gib seinen Token ein. Wenn die REST-API deaktiviert ist, aktiviere sie zuerst am Gerät.';
+
+  @override
+  String get rememberToken => 'Token auf diesem Gerät speichern';
+
+  @override
+  String get showToken => 'Token anzeigen';
+
+  @override
+  String get hideToken => 'Token ausblenden';
+
+  @override
+  String get tokenInvalid => 'Verwende 1–255 druckbare ASCII-Zeichen.';
+
+  @override
+  String get tokenRejected =>
+      'Token abgelehnt oder Geräte-API nicht verfügbar.';
+
+  @override
+  String get tokenConnectionFailed =>
+      'Token konnte nicht geprüft werden. Prüfe die Verbindung und versuche es erneut.';
+
+  @override
+  String get changeDeviceToken => 'Geräte-Token setzen';
+
+  @override
+  String get tokenSettingsHint =>
+      'Setze einen neuen Token am Gerät und speichere ihn in der App. Leer lassen, um den Token-Schutz zu entfernen.';
+
+  @override
+  String get tokenUpdated => 'Geräte-Token aktualisiert und gespeichert';
+
+  @override
+  String get tokenUpdateFailed =>
+      'Token-Änderung konnte nicht bestätigt werden. Prüfe den Gerätezugriff, bevor du es erneut versuchst.';
+
+  @override
+  String get deviceRequestTimeout =>
+      'Das Gerät hat nicht rechtzeitig geantwortet. Versuche es erneut.';
+
+  @override
+  String get deviceConnectionError =>
+      'Keine Verbindung zum Gerät. Prüfe die Stromversorgung und die WLAN-Verbindung.';
+
+  @override
+  String get deviceCertificateError =>
+      'Die sichere Verbindung konnte nicht geprüft werden.';
+
+  @override
+  String get deviceRequestCancelled => 'Vorgang abgebrochen.';
+
+  @override
+  String get deviceFeatureUnavailable =>
+      'Diese Funktion ist nicht verfügbar. Prüfe den Gerätezugriff und die API-Einstellungen.';
+
+  @override
+  String get deviceServiceError =>
+      'Das Gerät ist vorübergehend nicht verfügbar. Versuche es erneut.';
+
+  @override
+  String get deviceRequestRejected =>
+      'Das Gerät hat die Änderung abgelehnt. Prüfe die eingegebenen Werte.';
+
+  @override
+  String get deviceInvalidResponse =>
+      'Das Gerät hat eine unerwartete Antwort gesendet. Versuche es erneut.';
+
+  @override
+  String get deviceOperationFailed =>
+      'Der Vorgang konnte nicht abgeschlossen werden. Versuche es erneut.';
+
+  @override
+  String get wifiPermissionRequired =>
+      'Erlaube in den App-Einstellungen den Zugriff auf WLAN-Geräte in der Nähe oder den Standort, um WLANs zu suchen.';
 }

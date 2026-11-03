@@ -2336,6 +2336,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Total Energy'**
   String get totalEnergyTitleCase;
+
+  /// No description provided for @deviceToken.
+  ///
+  /// In en, this message translates to:
+  /// **'Device token'**
+  String get deviceToken;
+
+  /// No description provided for @tokenRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Token required'**
+  String get tokenRequired;
+
+  /// No description provided for @tokenRequiredMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The device rejected access. Enter its token to connect. If the REST API is disabled, enable it on the device first.'**
+  String get tokenRequiredMessage;
+
+  /// No description provided for @rememberToken.
+  ///
+  /// In en, this message translates to:
+  /// **'Save token on this device'**
+  String get rememberToken;
+
+  /// No description provided for @showToken.
+  ///
+  /// In en, this message translates to:
+  /// **'Show token'**
+  String get showToken;
+
+  /// No description provided for @hideToken.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide token'**
+  String get hideToken;
+
+  /// No description provided for @tokenInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Use 1–255 printable ASCII characters.'**
+  String get tokenInvalid;
+
+  /// No description provided for @tokenRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Token rejected or device API unavailable.'**
+  String get tokenRejected;
+
+  /// No description provided for @tokenConnectionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not verify the token. Check the connection and try again.'**
+  String get tokenConnectionFailed;
+
+  /// No description provided for @changeDeviceToken.
+  ///
+  /// In en, this message translates to:
+  /// **'Set device token'**
+  String get changeDeviceToken;
+
+  /// No description provided for @tokenSettingsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Set a new token on the device and save it in the app. Leave empty to remove token protection.'**
+  String get tokenSettingsHint;
+
+  /// No description provided for @tokenUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Device token updated and saved'**
+  String get tokenUpdated;
+
+  /// No description provided for @tokenUpdateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Token change could not be confirmed. Check device access before trying again.'**
+  String get tokenUpdateFailed;
+
+  /// No description provided for @deviceRequestTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'The device did not respond in time. Try again.'**
+  String get deviceRequestTimeout;
+
+  /// No description provided for @deviceConnectionError.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot connect to the device. Check its power and Wi-Fi connection.'**
+  String get deviceConnectionError;
+
+  /// No description provided for @deviceCertificateError.
+  ///
+  /// In en, this message translates to:
+  /// **'The secure connection could not be verified.'**
+  String get deviceCertificateError;
+
+  /// No description provided for @deviceRequestCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Operation cancelled.'**
+  String get deviceRequestCancelled;
+
+  /// No description provided for @deviceFeatureUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This function is unavailable. Check device access and API settings.'**
+  String get deviceFeatureUnavailable;
+
+  /// No description provided for @deviceServiceError.
+  ///
+  /// In en, this message translates to:
+  /// **'The device is temporarily unavailable. Try again.'**
+  String get deviceServiceError;
+
+  /// No description provided for @deviceRequestRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'The device rejected the change. Check the entered values.'**
+  String get deviceRequestRejected;
+
+  /// No description provided for @deviceInvalidResponse.
+  ///
+  /// In en, this message translates to:
+  /// **'The device returned an unexpected response. Try again.'**
+  String get deviceInvalidResponse;
+
+  /// No description provided for @deviceOperationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The operation could not be completed. Try again.'**
+  String get deviceOperationFailed;
+
+  /// No description provided for @wifiPermissionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow Nearby Wi-Fi devices or Location access in the app settings to scan Wi-Fi.'**
+  String get wifiPermissionRequired;
 }
 
 class _AppLocalizationsDelegate

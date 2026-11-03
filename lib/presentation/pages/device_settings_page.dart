@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+
+import '../utils/device_error_message.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/network/device_http_client.dart';
+import '../../core/network/device_auth.dart';
 import '../../core/utils/device_type.dart';
 import '../../data/datasources/device_remote_ds.dart';
 import '../../data/models/device_info.dart';
@@ -39,6 +42,8 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
   bool _loadingInfo = true;
   bool _noIp = false;
   String? _infoError;
+  final _tokenController = TextEditingController();
+  bool _updatingToken = false;
 
   @override
   void initState() {
@@ -57,6 +62,7 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
   @override
   void dispose() {
     _nameController.dispose();
+    _tokenController.dispose();
     _roomController.dispose();
     super.dispose();
   }
@@ -75,13 +81,15 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
         DeviceHttpClient(token: widget.device.token),
       );
       final info = await remote.getInfo(ip);
+      if (!mounted) return;
       setState(() {
         _info = info;
         _loadingInfo = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
-        _infoError = e.toString();
+        _infoError = deviceErrorMessage(e, AppLocalizations.of(context));
         _loadingInfo = false;
       });
     }
@@ -106,6 +114,43 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
       mac: widget.device.mac,
     );
     _snack(l10n.identifySignalSent);
+  }
+
+  Future<void> _updateToken() async {
+    final l10n = AppLocalizations.of(context);
+    final ip = widget.device.bestIp;
+    if (ip == null) {
+      _snack(l10n.noIpAddress);
+      return;
+    }
+    final token = _tokenController.text;
+    if (token.length > 255 || token.runes.any((c) => c < 32 || c > 126)) {
+      _snack(l10n.tokenInvalid);
+      return;
+    }
+    setState(() => _updatingToken = true);
+    final client = DeviceHttpClient();
+    try {
+      await DeviceRemoteDataSource(client).setToken(ip, token);
+      // Use the proposed credential directly; never let auth recovery mask
+      // a settings endpoint that ignored the requested change.
+      final valid = await client.verifyToken(ip, token.isEmpty ? null : token);
+      final protected = token.isEmpty || !await client.verifyToken(ip, null);
+      if (!valid || !protected) throw StateError('Token change unconfirmed');
+      await DeviceAuth.shared?.accept(
+        ip,
+        token.isEmpty ? null : token,
+        remember: true,
+      );
+      if (!mounted) return;
+      _tokenController.clear();
+      _snack(l10n.tokenUpdated);
+    } catch (_) {
+      if (mounted) _snack(l10n.tokenUpdateFailed);
+    } finally {
+      client.dispose();
+      if (mounted) setState(() => _updatingToken = false);
+    }
   }
 
   static const List<Color> _palette = [
@@ -235,6 +280,31 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
                     setState(() => _tempOffset = (v * 10).round() / 10),
               ),
             ],
+
+            const SizedBox(height: 24),
+            TextField(
+              key: const Key('settings_token_field'),
+              controller: _tokenController,
+              obscureText: true,
+              autocorrect: false,
+              enableSuggestions: false,
+              enabled: !_updatingToken,
+              decoration: InputDecoration(
+                labelText: l10n.deviceToken,
+                helperText: l10n.tokenSettingsHint,
+                helperMaxLines: 3,
+                border: const OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            FilledButton.tonalIcon(
+              key: const Key('settings_token_apply'),
+              onPressed: _updatingToken ? null : _updateToken,
+              icon: const Icon(Icons.key),
+              label: Text(
+                _updatingToken ? l10n.loadingEllipsis : l10n.changeDeviceToken,
+              ),
+            ),
 
             // ---- Tile color ----
             const SizedBox(height: 24),
@@ -484,6 +554,7 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
 
   bool _hasChanges() {
     final d = widget.device;
+    if (_tokenController.text.isNotEmpty) return true;
     final name = _nameController.text.trim();
     if (name != (d.customName ?? '')) return true;
     if (_roomController.text.trim() != (d.room ?? '')) return true;
@@ -690,7 +761,11 @@ class _SingleButtonActionTileState extends State<_SingleButtonActionTile> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context).saveFailed(e.toString())),
+          content: Text(
+            AppLocalizations.of(
+              context,
+            ).saveFailed(deviceErrorMessage(e, AppLocalizations.of(context))),
+          ),
         ),
       );
     }
@@ -717,7 +792,9 @@ class _SingleButtonActionTileState extends State<_SingleButtonActionTile> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            AppLocalizations.of(context).removeFailed(e.toString()),
+            AppLocalizations.of(
+              context,
+            ).removeFailed(deviceErrorMessage(e, AppLocalizations.of(context))),
           ),
         ),
       );
@@ -830,7 +907,11 @@ class _SwitchSlotActionTileState extends State<_SwitchSlotActionTile> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context).saveFailed(e.toString())),
+          content: Text(
+            AppLocalizations.of(
+              context,
+            ).saveFailed(deviceErrorMessage(e, AppLocalizations.of(context))),
+          ),
         ),
       );
     }
@@ -860,7 +941,9 @@ class _SwitchSlotActionTileState extends State<_SwitchSlotActionTile> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            AppLocalizations.of(context).removeFailed(e.toString()),
+            AppLocalizations.of(
+              context,
+            ).removeFailed(deviceErrorMessage(e, AppLocalizations.of(context))),
           ),
         ),
       );
@@ -986,7 +1069,11 @@ class _PirActionSectionState extends State<_PirActionSection> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context).saveFailed(e.toString())),
+          content: Text(
+            AppLocalizations.of(
+              context,
+            ).saveFailed(deviceErrorMessage(e, AppLocalizations.of(context))),
+          ),
         ),
       );
     }
@@ -1016,7 +1103,9 @@ class _PirActionSectionState extends State<_PirActionSection> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            AppLocalizations.of(context).removeFailed(e.toString()),
+            AppLocalizations.of(
+              context,
+            ).removeFailed(deviceErrorMessage(e, AppLocalizations.of(context))),
           ),
         ),
       );
@@ -1135,7 +1224,7 @@ class _PirThresholdsSectionState extends State<_PirThresholdsSection> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = deviceErrorMessage(e, AppLocalizations.of(context));
         _loading = false;
       });
     }
@@ -1173,7 +1262,11 @@ class _PirThresholdsSectionState extends State<_PirThresholdsSection> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context).saveFailed(e.toString())),
+          content: Text(
+            AppLocalizations.of(
+              context,
+            ).saveFailed(deviceErrorMessage(e, AppLocalizations.of(context))),
+          ),
         ),
       );
     }
@@ -1293,7 +1386,7 @@ class _PirSettingsSectionState extends State<_PirSettingsSection> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = deviceErrorMessage(e, AppLocalizations.of(context));
         _loading = false;
       });
     }
@@ -1323,7 +1416,11 @@ class _PirSettingsSectionState extends State<_PirSettingsSection> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context).saveFailed(e.toString())),
+          content: Text(
+            AppLocalizations.of(
+              context,
+            ).saveFailed(deviceErrorMessage(e, AppLocalizations.of(context))),
+          ),
         ),
       );
     }
