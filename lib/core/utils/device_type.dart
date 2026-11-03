@@ -42,7 +42,6 @@ enum DeviceType {
     'WRS',
     'WiFi Strip',
     isStrip: true,
-    hasPower: true,
     hasTimer: true,
     hasScheduler: true,
     canIdentify: true,

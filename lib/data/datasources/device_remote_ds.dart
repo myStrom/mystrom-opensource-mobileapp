@@ -46,12 +46,11 @@ class DeviceRemoteDataSource {
   /// fails. Used by the dashboard "total / per-room power" summary which
   /// must be resilient to missing fields and unreachable devices.
   Future<double?> getPower(String ip, DeviceType type) async {
+    if (!type.hasPower) return null;
     try {
       if (type.isSwitch) {
         final r = await getReport(ip);
         return r.power;
-      } else if (type.isStrip) {
-        return (await getStripState(ip)).power;
       } else if (type.isDimmer) {
         return (await getDimmerState(ip)).power;
       }

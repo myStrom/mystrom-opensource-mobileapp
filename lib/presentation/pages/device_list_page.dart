@@ -127,6 +127,7 @@ class _DeviceListPageState extends State<DeviceListPage> {
                 return d.room == _category;
             }
           }).toList();
+          final powerDevices = filtered.where((d) => d.type.hasPower).toList();
 
           return CustomScrollView(
             slivers: [
@@ -149,11 +150,11 @@ class _DeviceListPageState extends State<DeviceListPage> {
                 ),
               ),
               // Total power for the current category
-              if (filtered.isNotEmpty)
+              if (powerDevices.isNotEmpty)
                 SliverToBoxAdapter(
                   child: _PowerSummaryCard(
                     key: ValueKey('power_summary_$_category'),
-                    devices: filtered,
+                    devices: powerDevices,
                   ),
                 ),
               // Known devices section
