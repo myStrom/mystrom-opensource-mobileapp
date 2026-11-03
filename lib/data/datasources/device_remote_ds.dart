@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
@@ -249,14 +251,13 @@ class DeviceRemoteDataSource {
     final state = StripStateModel.fromJson(res.data as Map<String, dynamic>);
     // Also fetch the channel mode.
     try {
-      final modeRes = await _client.get(ip, ApiEndpoints.stripChModeGet);
-      final modeData = modeRes.data;
-      if (modeData is Map<String, dynamic>) {
-        final chMode = modeData['ch_mode'] as String? ?? 'colors';
-        return state.copyWith(chMode: chMode);
+      return state.copyWith(chMode: await getChMode(ip));
+    } on DioException catch (e) {
+      if (e.response?.statusCode != 404 ||
+          e.requestOptions.extra['authAttempted'] == true) {
+        rethrow;
       }
-    } catch (_) {
-      // ch_mode not available — default to 'colors'.
+      // Older firmware without this optional endpoint uses colors mode.
     }
     return state;
   }
@@ -280,11 +281,15 @@ class DeviceRemoteDataSource {
   /// Get the current channel mode (colors | channels | cold_warm).
   Future<String> getChMode(String ip) async {
     final res = await _client.get(ip, ApiEndpoints.stripChModeGet);
-    final data = res.data;
-    if (data is Map<String, dynamic>) {
-      return data['ch_mode'] as String? ?? 'colors';
+    // WRS returns JSON with text/plain, including on firmware 4.0.12/5.0.4.
+    // Dio leaves that response as text even when responseType is json.
+    final data = res.data is String ? jsonDecode(res.data as String) : res.data;
+    final mode = data is Map<String, dynamic> ? data['ch_mode'] : null;
+    if (mode is! String ||
+        !const {'colors', 'channels', 'cold_warm'}.contains(mode)) {
+      throw const FormatException('Invalid strip channel mode response');
     }
-    return 'colors';
+    return mode;
   }
 
   /// Set the channel mode (colors | channels | cold_warm).

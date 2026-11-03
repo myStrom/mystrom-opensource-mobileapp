@@ -480,7 +480,10 @@ class FakeMystromServer {
           return;
 
         case '/api/v1/ch_mode':
-          await _json(req, {'ch_mode': st.chMode});
+          // Physical WRS 4.0.12/5.0.4 sends this JSON as text/plain.
+          req.response.headers.contentType = ContentType.text;
+          req.response.write(jsonEncode({'ch_mode': st.chMode}));
+          await req.response.close();
           return;
 
         case '/api/v1/history':
