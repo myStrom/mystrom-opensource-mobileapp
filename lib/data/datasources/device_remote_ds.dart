@@ -418,52 +418,82 @@ class DeviceRemoteDataSource {
     );
   }
 
-  Future<void> setPirAction(
+  Future<Map<String, String>> setPirAction(
     String ip,
     String action, {
     required String url,
   }) async {
+    if (!pirActionSlots.contains(action)) {
+      throw ArgumentError.value(action, 'action');
+    }
     await _client.postRawText(ip, '${ApiEndpoints.pirAction}/$action', url);
+    return _confirmAction(await getPirActions(ip), action, url);
   }
+
+  static const pirActionSlots = [
+    'generic',
+    'night',
+    'twilight',
+    'day',
+    'rise',
+    'fall',
+  ];
+  static const switchActionSlots = ['on', 'off', 'generic'];
 
   Future<Map<String, String>> getPirActions(String ip) async {
     final res = await _client.get(ip, ApiEndpoints.pirActionAll);
-    final j = res.data as Map<String, dynamic>;
-    // Response is {"pir": {"generic": "...", "night": "...", ...}}
-    final pir = j['pir'] as Map<String, dynamic>? ?? {};
-    return pir.map((k, v) => MapEntry(k, v.toString()));
+    final data = res.data;
+    return _parseActions(data is Map ? data['pir'] : null, pirActionSlots);
   }
 
   // ---- Switch Button Action (WS2, WSE, WSX) ----
 
   /// Get the button action URLs configured on a switch device.
-  /// Response is `{url, on, off}` — returns `(onUrl, offUrl)`.
-  Future<({String on, String off})> getSwitchButtonActions(String ip) async {
+  /// The relay API calls the generic slot `url`.
+  Future<Map<String, String>> getSwitchButtonActions(String ip) async {
     final res = await _client.get(ip, ApiEndpoints.switchButtonAction);
-    final data = res.data;
-    if (data is Map<String, dynamic>) {
-      return (
-        on: data['on'] as String? ?? '',
-        off: data['off'] as String? ?? '',
-      );
+    return _parseActions(res.data, switchActionSlots, genericKey: 'url');
+  }
+
+  Future<Map<String, String>> setSwitchButtonAction(
+    String ip,
+    String slot, {
+    required String url,
+  }) async {
+    if (!switchActionSlots.contains(slot)) {
+      throw ArgumentError.value(slot, 'slot');
     }
-    return (on: '', off: '');
-  }
-
-  /// Set the button action URL for the ON slot on a switch device.
-  /// Uses a raw text body (NOT form-encoded).
-  Future<void> setSwitchButtonActionOn(String ip, String url) async {
-    await _client.postRawText(ip, '${ApiEndpoints.switchButtonAction}/on', url);
-  }
-
-  /// Set the button action URL for the OFF slot on a switch device.
-  /// Uses a raw text body (NOT form-encoded).
-  Future<void> setSwitchButtonActionOff(String ip, String url) async {
+    final path = ApiEndpoints.switchButtonAction;
     await _client.postRawText(
       ip,
-      '${ApiEndpoints.switchButtonAction}/off',
+      slot == 'generic' ? path : '$path/$slot',
       url,
     );
+    return _confirmAction(await getSwitchButtonActions(ip), slot, url);
+  }
+
+  Map<String, String> _parseActions(
+    Object? data,
+    List<String> slots, {
+    String genericKey = 'generic',
+  }) {
+    if (data is! Map) throw const FormatException('Invalid action response');
+    return {
+      for (final slot in slots)
+        slot: switch (data[slot == 'generic' ? genericKey : slot]) {
+          final String url => url,
+          _ => throw const FormatException('Missing or invalid action slot'),
+        },
+    };
+  }
+
+  Map<String, String> _confirmAction(
+    Map<String, String> slots,
+    String slot,
+    String url,
+  ) {
+    if (slots[slot] != url) throw StateError('Action change unconfirmed');
+    return slots;
   }
 
   // ---- LCS Button Action (single URL) ----

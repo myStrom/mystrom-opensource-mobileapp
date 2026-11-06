@@ -21,6 +21,7 @@ import 'package:mystrom_local/data/datasources/device_local_ds.dart';
 import 'package:mystrom_local/data/datasources/scene_local_ds.dart';
 import 'package:mystrom_local/data/models/scene.dart';
 import 'package:mystrom_local/data/models/stored_device.dart';
+import 'package:mystrom_local/domain/entities/device_entity.dart';
 
 import 'fake_mystrom_server.dart';
 
@@ -56,11 +57,12 @@ void main() {
     required int typeCode,
     required String type,
     required String model,
+    String version = '5.0.0',
   }) async {
     final server = FakeMystromServer();
     await server.start();
     final state = server.register(
-      FakeDeviceState(mac: mac, type: type, model: model, version: '5.0.0'),
+      FakeDeviceState(mac: mac, type: type, model: model, version: version),
     );
     await deviceDs.upsert(
       StoredDevice(
@@ -209,54 +211,141 @@ void main() {
     await deviceDs.delete(dev.mac);
   });
 
-  testWidgets('WS2 switch saves a button action URL via settings', (
-    tester,
-  ) async {
-    const mac = 'AA:BB:CC:DD:EE:B1';
-    final dev = await addDevice(
-      mac: mac,
-      name: 'WS2 Switch',
-      typeCode: 106,
-      type: 'ws2',
-      model: 'WS2',
-    );
-    await pumpApp(tester);
+  testWidgets(
+    'local actions: legacy WS2 saves, reads back and clears relay slots',
+    (tester) async {
+      const mac = 'AA:BB:CC:DD:EE:B1';
+      final dev = await addDevice(
+        mac: mac,
+        name: 'WS2 Switch',
+        typeCode: 106,
+        type: 'ws2',
+        model: 'WS2',
+        version: '4.0.23',
+      );
+      final target = await addDevice(
+        mac: 'AA:BB:CC:DD:EE:B2',
+        name: 'Target Switch',
+        typeCode: 107,
+        type: 'wse',
+        model: 'WSE',
+      );
+      await pumpApp(tester);
 
-    await tester.tap(find.byKey(const Key('device_card_$mac')));
-    await tester.pumpAndSettle(const Duration(seconds: 1));
+      Future<void> settings() async {
+        await tester.tap(find.byKey(const Key('detail_settings_button')));
+        await tester.pumpAndSettle();
+      }
 
-    // Open settings — the button action tiles should be visible.
-    await tester.tap(find.byKey(const Key('detail_settings_button')));
-    await tester.pumpAndSettle(const Duration(seconds: 1));
+      Future<Finder> show(String slot) async {
+        final tile = find.byKey(Key('switch_action_${slot}_tile'));
+        await tester.scrollUntilVisible(
+          tile,
+          150,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.pumpAndSettle();
+        await tester.ensureVisible(tile);
+        await tester.pumpAndSettle();
+        expect(tile.hitTestable(), findsOneWidget);
+        return tile;
+      }
 
-    // Scroll to the ON action tile.
-    await tester.scrollUntilVisible(
-      find.byKey(const Key('switch_action_on_tile')),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(find.byKey(const Key('switch_action_on_tile')), findsOneWidget);
-    expect(find.byKey(const Key('switch_action_off_tile')), findsOneWidget);
-    // Initially not configured.
-    expect(find.text('Not configured'), findsNWidgets(2));
+      Future<void> assign(String slot) async {
+        await tester.tap(await show(slot));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byType(DropdownButtonFormField<DeviceEntity>));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Target Switch (WSE)').last);
+        await tester.pumpAndSettle();
+        await tester.tap(find.byType(DropdownButtonFormField<String>));
+        await tester.pumpAndSettle();
+        expect(find.text('color'), findsNothing);
+        await tester.tap(find.text('on').last);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Assign'));
+        await tester.pumpAndSettle();
+      }
 
-    // Tap the ON tile — the ActionUrlPicker dialog opens.
-    await tester.tap(find.byKey(const Key('switch_action_on_tile')));
-    await tester.pumpAndSettle(const Duration(seconds: 1));
-    expect(find.text('Assign'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('device_card_$mac')));
+      await tester.pumpAndSettle();
+      await settings();
 
-    // Close the dialog and go back.
-    await tester.tap(find.text('Cancel').first);
-    await tester.pumpAndSettle();
+      const path = '/api/v1/action/relay';
+      final url =
+          'get://${target.server.host}:${target.server.port}/relay?state=1';
+      for (final slot in ['on', 'off', 'generic']) {
+        final start = dev.server.requests.length;
+        await assign(slot);
+        final calls = dev.server.requests
+            .skip(start)
+            .where((r) => r.path.startsWith(path))
+            .toList();
+        expect(calls.map((r) => (r.method, r.path)), [
+          ('POST', slot == 'generic' ? path : '$path/$slot'),
+          ('GET', path),
+        ]);
+        expect(calls.first.body, url);
+      }
+      expect(dev.state.switchButtonActionOn, url);
+      expect(dev.state.switchButtonActionOff, url);
+      expect(dev.state.switchButtonActionGeneric, url);
 
-    await tester.tap(find.byKey(const Key('settings_back_button')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('detail_back_button')));
-    await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('settings_back_button')));
+      await tester.pumpAndSettle();
+      await settings();
+      final tile = await show('generic');
+      expect(
+        find.descendant(of: tile, matching: find.text(url)),
+        findsOneWidget,
+      );
 
-    await dev.server.stop();
-    await deviceDs.delete(dev.mac);
-  });
+      final delete = find.byKey(
+        const Key('switch_action_generic_delete_button'),
+      );
+      await tester.ensureVisible(delete);
+      await tester.pumpAndSettle();
+      await tester.tap(delete);
+      await tester.pumpAndSettle();
+      expect(dev.state.switchButtonActionGeneric, '');
+      expect(dev.state.switchButtonActionOn, url);
+      expect(dev.state.switchButtonActionOff, url);
+      expect(
+        find.descendant(of: tile, matching: find.text('Not configured')),
+        findsOneWidget,
+      );
+
+      // Some firmware paths can return 200 without updating storage.
+      dev.server.ignoreActionWrite = true;
+      await assign('generic');
+      expect(dev.state.switchButtonActionGeneric, '');
+      expect(find.textContaining('Save failed'), findsWidgets);
+      final scrollable = find.byType(Scrollable).first;
+      tester.state<ScrollableState>(scrollable).position.jumpTo(0);
+      await tester.pumpAndSettle();
+      final retry = find.byKey(const Key('switch_action_retry'));
+      await tester.scrollUntilVisible(retry, 100, scrollable: scrollable);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(retry);
+      await tester.pumpAndSettle();
+      await tester.tap(retry);
+      await tester.pumpAndSettle();
+      await show('generic');
+      expect(
+        find.descendant(of: tile, matching: find.text('Not configured')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const Key('settings_back_button')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('detail_back_button')));
+      await tester.pumpAndSettle();
+      await dev.server.stop();
+      await target.server.stop();
+      await deviceDs.delete(dev.mac);
+      await deviceDs.delete(target.mac);
+    },
+  );
 
   testWidgets('WRS strip turns on, recolors and turns off', (tester) async {
     const mac = 'AA:BB:CC:DD:EE:C0';
@@ -440,9 +529,7 @@ void main() {
     await deviceDs.delete(dev.mac);
   });
 
-  testWidgets('WMS PIR settings shows 6 action slots and saves a URL', (
-    tester,
-  ) async {
+  testWidgets('local actions: WMS saves and clears a PIR slot', (tester) async {
     const mac = 'AA:BB:CC:DD:EE:F3';
     const targetMac = 'AA:BB:CC:DD:EE:F4';
     final dev = await addDevice(
@@ -451,6 +538,7 @@ void main() {
       typeCode: 110,
       type: 'pir',
       model: 'WMS',
+      version: '5.0.5',
     );
     // Add a target switch so the action URL picker has something to pick.
     final target = await addDevice(
@@ -469,6 +557,12 @@ void main() {
     await tester.tap(find.byKey(const Key('detail_settings_button')));
     await tester.pumpAndSettle(const Duration(seconds: 1));
 
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('pir_action_generic_tile')),
+      150,
+      scrollable: find.byType(Scrollable).first,
+    );
+
     // All six PIR condition tiles should be visible.
     expect(find.byKey(const Key('pir_action_generic_tile')), findsOneWidget);
     expect(find.byKey(const Key('pir_action_night_tile')), findsOneWidget);
@@ -482,11 +576,14 @@ void main() {
 
     // Tap the generic slot to open the URL picker, pick the target switch
     // and assign a toggle action.
-    await tester.tap(find.byKey(const Key('pir_action_generic_tile')));
+    final genericTile = find.byKey(const Key('pir_action_generic_tile'));
+    await tester.ensureVisible(genericTile);
+    await tester.pumpAndSettle();
+    await tester.tap(genericTile);
     await tester.pumpAndSettle();
 
     // Select the target device from the dropdown.
-    await tester.tap(find.text('Target device'));
+    await tester.tap(find.byType(DropdownButtonFormField<DeviceEntity>));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Target Switch (WS2)').last);
     await tester.pumpAndSettle();
@@ -496,7 +593,6 @@ void main() {
     await tester.pumpAndSettle();
 
     // The generic tile should now show a generated URL (get://.../toggle).
-    final genericTile = find.byKey(const Key('pir_action_generic_tile'));
     await tester.pumpAndSettle();
     expect(
       find.descendant(of: genericTile, matching: find.textContaining('toggle')),
@@ -506,8 +602,17 @@ void main() {
     expect(find.text('Not configured'), findsNWidgets(5));
 
     // Verify the fake server received the POST.
-    expect(dev.state.pirActions['generic'], isNotEmpty);
-    expect(dev.state.pirActions['generic'], contains('toggle'));
+    final url = 'get://${target.server.host}:${target.server.port}/toggle';
+    expect(dev.state.pirActions['generic'], url);
+    final calls = dev.server.requests
+        .where((r) => r.path.startsWith('/api/v1/action'))
+        .toList();
+    expect(calls.map((r) => (r.method, r.path)), [
+      ('GET', '/api/v1/action'),
+      ('POST', '/api/v1/action/pir/generic'),
+      ('GET', '/api/v1/action'),
+    ]);
+    expect(calls[1].body, url);
 
     // Now remove the action with the delete button — the tile should go
     // back to "Not configured" and the fake server should receive an

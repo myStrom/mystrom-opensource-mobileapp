@@ -27,27 +27,27 @@ class ActionConfigRepository {
     int? ramp,
     String? mode,
   }) {
+    if (!const ['on', 'off', 'toggle', 'color'].contains(action) ||
+        (action == 'color' &&
+            (!(targetType.isStrip || targetType.isBulb) || color == null))) {
+      throw ArgumentError.value(action, 'action', 'Unsupported target action');
+    }
+    final isColor = action == 'color';
     switch (targetType) {
       case DeviceType.ws2:
       case DeviceType.wse:
       case DeviceType.wsx:
       case DeviceType.lcs:
-        switch (action) {
-          case 'toggle':
-            return 'get://$targetIp/toggle';
-          case 'on':
-            return 'post://$targetIp/relay?action=on';
-          case 'off':
-            return 'post://$targetIp/relay?action=off';
-          default:
-            return 'get://$targetIp/toggle';
-        }
+        return action == 'toggle'
+            ? 'get://$targetIp/toggle'
+            : 'get://$targetIp/relay?state=${action == 'on' ? 1 : 0}';
       case DeviceType.wrs:
-        final params = <String>[];
-        params.add('action=${action == 'toggle' ? 'toggle' : action}');
-        if (color != null) params.add('color=$color');
-        if (ramp != null) params.add('ramp=$ramp');
-        if (mode != null) params.add('mode=$mode');
+        final params = [
+          if (!isColor) 'action=$action',
+          if (color != null) 'color=$color',
+          if (ramp != null) 'ramp=$ramp',
+          if (mode != null) 'mode=$mode',
+        ];
         return 'post://$targetIp/device?${params.join("&")}';
       case DeviceType.wll:
         final params = <String>[];
@@ -55,14 +55,15 @@ class ActionConfigRepository {
         if (ramp != null) params.add('ramp=$ramp');
         return 'post://$targetIp/device?${params.join("&")}';
       case DeviceType.bulb:
-        final params = <String>[];
-        params.add('action=${action == 'toggle' ? 'toggle' : action}');
-        if (color != null) params.add('color=$color');
-        if (ramp != null) params.add('ramp=$ramp');
-        if (mode != null) params.add('mode=$mode');
+        final params = [
+          'action=${isColor ? 'on' : action}',
+          if (color != null) 'color=$color',
+          if (ramp != null) 'ramp=$ramp',
+          if (mode != null || isColor) 'mode=${mode ?? 'hsv'}',
+        ];
         return 'post://$targetIp/api/v1/device/self?${params.join("&")}';
       default:
-        return 'get://$targetIp/';
+        throw ArgumentError.value(targetType, 'targetType');
     }
   }
 

@@ -26,10 +26,12 @@ class _ActionUrlPickerState extends State<ActionUrlPicker> {
   DeviceEntity? _target;
   String _action = 'toggle';
   String _color = '120;100;100';
-  int _ramp = 500;
+  String _ramp = '500';
   String? _colorError;
+  String? _rampError;
 
-  static const _actions = ['toggle', 'on', 'off', 'color'];
+  bool _canColor(DeviceEntity? device) =>
+      device != null && (device.type.isStrip || device.type.isBulb);
 
   @override
   Widget build(BuildContext context) {
@@ -37,10 +39,11 @@ class _ActionUrlPickerState extends State<ActionUrlPicker> {
     final controllable = widget.devices
         .where(
           (d) =>
-              d.type.isSwitch ||
-              d.type.isStrip ||
-              d.type.isDimmer ||
-              d.type.isBulb,
+              d.bestIp != null &&
+              (d.type.isSwitch ||
+                  d.type.isStrip ||
+                  d.type.isDimmer ||
+                  d.type.isBulb),
         )
         .toList();
 
@@ -50,26 +53,32 @@ class _ActionUrlPickerState extends State<ActionUrlPicker> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            DropdownButtonFormField<DeviceEntity>(
-              decoration: InputDecoration(labelText: l10n.targetDevice),
-              initialValue: _target,
-              items: controllable
-                  .map(
-                    (d) => DropdownMenuItem(
-                      value: d,
-                      child: Text(
-                        l10n.deviceWithModel(d.displayName, d.type.model),
+            if (controllable.isEmpty) Text(l10n.noActionTargets),
+            if (controllable.isNotEmpty)
+              DropdownButtonFormField<DeviceEntity>(
+                decoration: InputDecoration(labelText: l10n.targetDevice),
+                initialValue: _target,
+                items: controllable
+                    .map(
+                      (d) => DropdownMenuItem(
+                        value: d,
+                        child: Text(
+                          l10n.deviceWithModel(d.displayName, d.type.model),
+                        ),
                       ),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (v) => setState(() => _target = v),
-            ),
+                    )
+                    .toList(),
+                onChanged: (v) => setState(() {
+                  _target = v;
+                  if (_action == 'color' && !_canColor(v)) _action = 'toggle';
+                }),
+              ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
+              key: ValueKey(_canColor(_target)),
               decoration: InputDecoration(labelText: l10n.action),
               initialValue: _action,
-              items: _actions
+              items: ['toggle', 'on', 'off', if (_canColor(_target)) 'color']
                   .map(
                     (a) => DropdownMenuItem(
                       value: a,
@@ -81,8 +90,9 @@ class _ActionUrlPickerState extends State<ActionUrlPicker> {
             ),
             if (_action == 'color') ...[
               const SizedBox(height: 16),
-              TextField(
+              TextFormField(
                 key: const Key('action_url_color_field'),
+                initialValue: _color,
                 decoration: InputDecoration(
                   labelText: l10n.colorHsvShort,
                   hintText: '120;100;100',
@@ -96,13 +106,18 @@ class _ActionUrlPickerState extends State<ActionUrlPicker> {
                 },
               ),
               const SizedBox(height: 8),
-              TextField(
+              TextFormField(
+                key: const Key('action_url_ramp_field'),
+                initialValue: _ramp,
                 decoration: InputDecoration(
                   labelText: l10n.rampMs,
-                  hintText: '500',
+                  errorText: _rampError,
                 ),
                 keyboardType: TextInputType.number,
-                onChanged: (v) => _ramp = int.tryParse(v) ?? 500,
+                onChanged: (v) => setState(() {
+                  _ramp = v;
+                  _rampError = null;
+                }),
               ),
             ],
           ],
@@ -113,7 +128,10 @@ class _ActionUrlPickerState extends State<ActionUrlPicker> {
           onPressed: () => Navigator.pop(context),
           child: Text(l10n.cancel),
         ),
-        FilledButton(onPressed: _generate, child: Text(l10n.assign)),
+        FilledButton(
+          onPressed: _target == null ? null : _generate,
+          child: Text(l10n.assign),
+        ),
       ],
     );
   }
@@ -125,10 +143,18 @@ class _ActionUrlPickerState extends State<ActionUrlPicker> {
     // string is REJECTED with a validation error instead of being
     // silently replaced by an arbitrary default color.
     String? color;
+    int? ramp;
     if (_action == 'color') {
       color = sanitizeHsv(_color);
       if (color == null) {
         setState(() => _colorError = AppLocalizations.of(context).invalidColor);
+        return;
+      }
+      ramp = int.tryParse(_ramp.trim());
+      if (ramp == null || ramp < 0 || ramp > 40950) {
+        setState(
+          () => _rampError = AppLocalizations.of(context).invalidActionRamp,
+        );
         return;
       }
     }
@@ -137,7 +163,7 @@ class _ActionUrlPickerState extends State<ActionUrlPicker> {
       targetType: _target!.type,
       action: _action,
       color: color,
-      ramp: _ramp,
+      ramp: ramp,
     );
     widget.onUrlGenerated(url);
   }

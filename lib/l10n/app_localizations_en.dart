@@ -913,6 +913,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rampMs => 'Ramp (ms)';
 
   @override
+  String get invalidActionRamp => 'Enter a ramp between 0 and 40950 ms.';
+
+  @override
+  String get noActionTargets => 'No controllable devices with an address.';
+
+  @override
   String get valuePercent => 'Value (%)';
 
   @override

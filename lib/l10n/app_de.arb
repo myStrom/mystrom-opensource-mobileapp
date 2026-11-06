@@ -259,6 +259,8 @@
   "setColorOnly": "setzen (nur Farbe)",
   "colorHsv": "Farbe (HSV)",
   "rampMs": "Übergangszeit (ms)",
+  "invalidActionRamp": "Gib eine Übergangszeit zwischen 0 und 40950 ms ein.",
+  "noActionTargets": "Keine steuerbaren Geräte mit Adresse verfügbar.",
   "valuePercent": "Wert (%)",
   "daySun": "So",
   "dayMon": "Mo",

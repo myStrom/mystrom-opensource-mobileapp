@@ -182,7 +182,8 @@ void main() {
             'got: $generated',
       );
       expect(generated, contains('post://192.168.1.50/api/v1/device/self'));
-      expect(generated, contains('action=color'));
+      expect(generated, contains('action=on'));
+      expect(generated, contains('mode=hsv'));
     });
 
     testWidgets('rejects a malformed HSV color instead of inventing one', (
@@ -248,16 +249,26 @@ void main() {
         reason: 'the dialog must still be open showing the error',
       );
 
-      // Fixing the input clears the error and generates the URL.
+      // Fix the color, then verify an out-of-range ramp also blocks Assign.
       await tester.enterText(
         find.byKey(const Key('action_url_color_field')),
         '30;50;60',
       );
+      final ramp = find.byKey(const Key('action_url_ramp_field'));
+      await tester.enterText(ramp, '40951');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Assign'));
+      await tester.pumpAndSettle();
+      expect(generated, isNull);
+      expect(find.text('Enter a ramp between 0 and 40950 ms.'), findsOneWidget);
+
+      await tester.enterText(ramp, '40950');
       await tester.pumpAndSettle();
       await tester.tap(find.text('Assign'));
       await tester.pumpAndSettle();
 
       expect(generated, contains('color=30;50;60'));
+      expect(generated, contains('ramp=40950'));
       expect(generated, contains('post://192.168.1.50/api/v1/device/self'));
     });
   });

@@ -408,7 +408,13 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
                 style: const TextStyle(fontSize: 12, color: Colors.grey),
               ),
               const SizedBox(height: 8),
-              _ButtonActionSection(device: d),
+              if (d.type == DeviceType.lcs)
+                _SingleButtonActionTile(
+                  device: d,
+                  key: const Key('lcs_action_tile'),
+                )
+              else
+                _LocalActionSection(device: d),
             ],
 
             // ---- PIR action URLs (WMS) ----
@@ -427,7 +433,7 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
                 style: const TextStyle(fontSize: 12, color: Colors.grey),
               ),
               const SizedBox(height: 8),
-              _PirActionSection(device: d),
+              _LocalActionSection(device: d),
             ],
 
             // ---- PIR light thresholds (WMS) ----
@@ -648,48 +654,6 @@ class _DeviceSettingsPageState extends State<DeviceSettingsPage> {
   }
 }
 
-/// Button action section — renders the appropriate tile(s) based on type.
-///
-/// LCS devices have a single button action slot (`/api/v1/action/button`).
-/// WS2/WSE/WSX switches have two slots: ON and OFF
-/// (`/api/v1/action/relay/on` and `/api/v1/action/relay/off`).
-class _ButtonActionSection extends StatefulWidget {
-  const _ButtonActionSection({required this.device});
-
-  final DeviceEntity device;
-
-  @override
-  State<_ButtonActionSection> createState() => _ButtonActionSectionState();
-}
-
-class _ButtonActionSectionState extends State<_ButtonActionSection> {
-  bool get _isLcs => widget.device.type == DeviceType.lcs;
-
-  @override
-  Widget build(BuildContext context) {
-    if (_isLcs) {
-      return _SingleButtonActionTile(
-        device: widget.device,
-        key: const Key('lcs_action_tile'),
-      );
-    }
-    return Column(
-      children: [
-        _SwitchSlotActionTile(
-          device: widget.device,
-          slot: 'on',
-          key: const Key('switch_action_on_tile'),
-        ),
-        _SwitchSlotActionTile(
-          device: widget.device,
-          slot: 'off',
-          key: const Key('switch_action_off_tile'),
-        ),
-      ],
-    );
-  }
-}
-
 /// Single button-action tile for LCS devices (one URL slot).
 class _SingleButtonActionTile extends StatefulWidget {
   const _SingleButtonActionTile({super.key, required this.device});
@@ -828,24 +792,41 @@ class _SingleButtonActionTileState extends State<_SingleButtonActionTile> {
   }
 }
 
-/// Switch slot action tile — one of "on" or "off" for WS2/WSE/WSX.
-class _SwitchSlotActionTile extends StatefulWidget {
-  const _SwitchSlotActionTile({
-    super.key,
-    required this.device,
-    required this.slot,
-  });
+/// Shared action editor for the six PIR slots and the three relay slots.
+class _LocalActionSection extends StatefulWidget {
+  const _LocalActionSection({required this.device});
 
   final DeviceEntity device;
-  final String slot; // 'on' or 'off'
 
   @override
-  State<_SwitchSlotActionTile> createState() => _SwitchSlotActionTileState();
+  State<_LocalActionSection> createState() => _LocalActionSectionState();
 }
 
-class _SwitchSlotActionTileState extends State<_SwitchSlotActionTile> {
-  String? _currentUrl;
-  bool _loading = true;
+class _LocalActionSectionState extends State<_LocalActionSection>
+    with AutomaticKeepAliveClientMixin<_LocalActionSection> {
+  static const _pirIcons = {
+    'generic': Icons.sensors,
+    'night': Icons.nightlight,
+    'twilight': Icons.brightness_3,
+    'day': Icons.wb_sunny,
+    'rise': Icons.notifications_active,
+    'fall': Icons.notifications_off,
+  };
+  static const _switchIcons = {
+    'on': Icons.power_settings_new,
+    'off': Icons.power_off,
+    'generic': Icons.touch_app,
+  };
+
+  Map<String, String>? _urls;
+  String? _error;
+  bool _busy = true;
+
+  bool get _isPir => widget.device.type.isPir;
+  String get _keyPrefix => _isPir ? 'pir_action' : 'switch_action';
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -853,326 +834,133 @@ class _SwitchSlotActionTileState extends State<_SwitchSlotActionTile> {
     _load();
   }
 
-  Future<void> _load() async {
+  Future<void> _load() => _request();
+
+  Future<void> _request({String? slot, String? url}) async {
     final ip = widget.device.bestIp;
     if (ip == null) {
-      if (mounted) setState(() => _loading = false);
+      setState(() => _busy = false);
       return;
     }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    final client = DeviceHttpClient(token: widget.device.token);
+    final remote = DeviceRemoteDataSource(client);
     try {
-      final remote = DeviceRemoteDataSource(
-        DeviceHttpClient(token: widget.device.token),
-      );
-      final actions = await remote.getSwitchButtonActions(ip);
-      if (!mounted) return;
-      setState(() {
-        _currentUrl = widget.slot == 'on' ? actions.on : actions.off;
-        _loading = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _pick() async {
-    final devices = context.read<DeviceProvider>().devices;
-    final ip = widget.device.bestIp;
-    if (ip == null) return;
-    final url = await showDialog<String>(
-      context: context,
-      builder: (_) => ActionUrlPicker(
-        devices: devices,
-        onUrlGenerated: (u) => Navigator.pop(context, u),
-      ),
-    );
-    if (url == null || !mounted) return;
-    try {
-      final remote = DeviceRemoteDataSource(
-        DeviceHttpClient(token: widget.device.token),
-      );
-      if (widget.slot == 'on') {
-        await remote.setSwitchButtonActionOn(ip, url);
+      final Map<String, String> confirmed;
+      if (slot == null) {
+        confirmed = await (_isPir
+            ? remote.getPirActions(ip)
+            : remote.getSwitchButtonActions(ip));
       } else {
-        await remote.setSwitchButtonActionOff(ip, url);
+        confirmed = await (_isPir
+            ? remote.setPirAction(ip, slot, url: url!)
+            : remote.setSwitchButtonAction(ip, slot, url: url!));
       }
       if (!mounted) return;
-      setState(() => _currentUrl = url);
-      final l10n = AppLocalizations.of(context);
-      final slotLabel = widget.slot == 'on' ? l10n.on : l10n.off;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.slotActionSaved(slotLabel, url))),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.of(
-              context,
-            ).saveFailed(deviceErrorMessage(e, AppLocalizations.of(context))),
-          ),
-        ),
-      );
-    }
-  }
-
-  /// Clear the configured slot action by sending an empty URL.
-  Future<void> _clear() async {
-    final ip = widget.device.bestIp;
-    if (ip == null) return;
-    try {
-      final remote = DeviceRemoteDataSource(
-        DeviceHttpClient(token: widget.device.token),
-      );
-      if (widget.slot == 'on') {
-        await remote.setSwitchButtonActionOn(ip, '');
-      } else {
-        await remote.setSwitchButtonActionOff(ip, '');
+      setState(() => _urls = confirmed);
+      if (slot != null) {
+        final l10n = AppLocalizations.of(context);
+        final label = _label(l10n, slot);
+        _snack(
+          url!.isEmpty
+              ? l10n.slotActionRemoved(label)
+              : l10n.slotActionSaved(label, url),
+        );
       }
+    } catch (error) {
       if (!mounted) return;
-      setState(() => _currentUrl = null);
       final l10n = AppLocalizations.of(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.slotActionRemoved(widget.slot))),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.of(
-              context,
-            ).removeFailed(deviceErrorMessage(e, AppLocalizations.of(context))),
-          ),
-        ),
-      );
+      final reason = deviceErrorMessage(error, l10n);
+      var message = reason;
+      if (slot != null) {
+        message = url!.isEmpty
+            ? l10n.removeFailed(reason)
+            : l10n.saveFailed(reason);
+      }
+      setState(() => _error = message);
+      if (slot != null) _snack(message);
+    } finally {
+      client.dispose();
+      if (mounted) setState(() => _busy = false);
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final label = widget.slot == 'on'
-        ? l10n.whenRelayTurnsOn
-        : l10n.whenRelayTurnsOff;
-    final configured = _currentUrl != null && _currentUrl!.isNotEmpty;
-    return ListTile(
-      leading: Icon(
-        widget.slot == 'on' ? Icons.power_settings_new : Icons.power_off,
-      ),
-      title: Text(label),
-      subtitle: Text(
-        _loading
-            ? l10n.loading
-            : (configured ? _currentUrl! : l10n.notConfigured),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: configured
-          ? IconButton(
-              key: Key('switch_action_${widget.slot}_delete_button'),
-              icon: const Icon(Icons.delete_outline),
-              tooltip: l10n.removeAction,
-              onPressed: _clear,
-            )
-          : const Icon(Icons.chevron_right),
-      onTap: _pick,
-    );
-  }
-}
-
-/// PIR action section — renders one tile per PIR condition slot.
-///
-/// WMS (PIR) exposes six action URL slots via
-/// `GET/POST /api/v1/action/pir/<generic|night|twilight|day|rise|fall>`.
-/// Each slot is a raw text URL body, analogous to the switch on/off slots.
-class _PirActionSection extends StatefulWidget {
-  const _PirActionSection({required this.device});
-
-  final DeviceEntity device;
-
-  @override
-  State<_PirActionSection> createState() => _PirActionSectionState();
-}
-
-class _PirActionSectionState extends State<_PirActionSection> {
-  /// Ordered PIR condition slots.
-  static const _slots = <(String, IconData)>[
-    ('generic', Icons.sensors),
-    ('night', Icons.nightlight),
-    ('twilight', Icons.brightness_3),
-    ('day', Icons.wb_sunny),
-    ('rise', Icons.notifications_active),
-    ('fall', Icons.notifications_off),
-  ];
-
-  Map<String, String> _urls = {};
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final ip = widget.device.bestIp;
-    if (ip == null) {
-      if (mounted) setState(() => _loading = false);
-      return;
-    }
-    try {
-      final remote = DeviceRemoteDataSource(
-        DeviceHttpClient(token: widget.device.token),
-      );
-      final actions = await remote.getPirActions(ip);
-      if (!mounted) return;
-      setState(() {
-        _urls = actions;
-        _loading = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _loading = false);
-    }
+  void _snack(String message) {
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _pick(String slot) async {
     final devices = context.read<DeviceProvider>().devices;
-    final ip = widget.device.bestIp;
-    if (ip == null) return;
     final url = await showDialog<String>(
       context: context,
-      builder: (_) => ActionUrlPicker(
+      builder: (dialogContext) => ActionUrlPicker(
         devices: devices,
-        onUrlGenerated: (u) => Navigator.pop(context, u),
+        onUrlGenerated: (url) => Navigator.pop(dialogContext, url),
       ),
     );
-    if (url == null || !mounted) return;
-    try {
-      final remote = DeviceRemoteDataSource(
-        DeviceHttpClient(token: widget.device.token),
-      );
-      await remote.setPirAction(ip, slot, url: url);
-      if (!mounted) return;
-      setState(() => _urls[slot] = url);
-      final l10n = AppLocalizations.of(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            l10n.slotActionSaved(localizedPirSlotLabel(l10n, slot), url),
-          ),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.of(
-              context,
-            ).saveFailed(deviceErrorMessage(e, AppLocalizations.of(context))),
-          ),
-        ),
-      );
-    }
+    if (mounted && url != null) await _request(slot: slot, url: url);
   }
 
-  /// Clear the action URL for [slot] by sending an empty body.
-  Future<void> _clear(String slot) async {
-    final ip = widget.device.bestIp;
-    if (ip == null) return;
-    try {
-      final remote = DeviceRemoteDataSource(
-        DeviceHttpClient(token: widget.device.token),
-      );
-      await remote.setPirAction(ip, slot, url: '');
-      if (!mounted) return;
-      setState(() => _urls[slot] = '');
-      final l10n = AppLocalizations.of(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            l10n.slotActionRemoved(localizedPirSlotLabel(l10n, slot)),
-          ),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.of(
-              context,
-            ).removeFailed(deviceErrorMessage(e, AppLocalizations.of(context))),
-          ),
-        ),
-      );
-    }
+  String _label(AppLocalizations l10n, String slot) {
+    if (_isPir) return localizedPirSlotLabel(l10n, slot);
+    return switch (slot) {
+      'on' => l10n.whenRelayTurnsOn,
+      'off' => l10n.whenRelayTurnsOff,
+      _ => l10n.generic,
+    };
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final l10n = AppLocalizations.of(context);
-    if (_loading) {
-      return const Padding(
-        padding: EdgeInsets.all(16),
-        child: Center(child: CircularProgressIndicator()),
+    if (widget.device.bestIp == null) {
+      return ListTile(title: Text(l10n.noIpAddress));
+    }
+    if (_error != null) {
+      return ListTile(
+        title: Text(_error!),
+        trailing: TextButton(
+          key: Key('${_keyPrefix}_retry'),
+          onPressed: _busy ? null : _load,
+          child: Text(l10n.retry),
+        ),
       );
     }
+    final urls = _urls;
+    if (urls == null) return const LinearProgressIndicator();
+    final icons = _isPir ? _pirIcons : _switchIcons;
     return Column(
       children: [
-        for (final (slot, icon) in _slots)
-          _PirSlotActionTile(
-            key: Key('pir_action_${slot}_tile'),
-            label: localizedPirSlotLabel(l10n, slot),
-            icon: icon,
-            url: _urls[slot] ?? '',
-            onTap: () => _pick(slot),
-            onClear: () => _clear(slot),
+        if (_busy) const LinearProgressIndicator(),
+        for (final entry in icons.entries)
+          ListTile(
+            key: Key('${_keyPrefix}_${entry.key}_tile'),
+            leading: Icon(entry.value),
+            title: Text(_label(l10n, entry.key)),
+            subtitle: Text(
+              urls[entry.key]!.isEmpty ? l10n.notConfigured : urls[entry.key]!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            trailing: urls[entry.key]!.isEmpty
+                ? const Icon(Icons.chevron_right)
+                : IconButton(
+                    key: Key('${_keyPrefix}_${entry.key}_delete_button'),
+                    icon: const Icon(Icons.delete_outline),
+                    tooltip: l10n.removeAction,
+                    onPressed: _busy
+                        ? null
+                        : () => _request(slot: entry.key, url: ''),
+                  ),
+            onTap: _busy ? null : () => _pick(entry.key),
           ),
       ],
-    );
-  }
-}
-
-/// A single PIR condition slot tile showing the configured URL (if any).
-class _PirSlotActionTile extends StatelessWidget {
-  const _PirSlotActionTile({
-    super.key,
-    required this.label,
-    required this.icon,
-    required this.url,
-    required this.onTap,
-    required this.onClear,
-  });
-
-  final String label;
-  final IconData icon;
-  final String url;
-  final VoidCallback onTap;
-  final VoidCallback onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return ListTile(
-      leading: Icon(icon),
-      title: Text(label),
-      subtitle: Text(
-        url.isNotEmpty ? url : l10n.notConfigured,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: url.isNotEmpty
-          ? IconButton(
-              icon: const Icon(Icons.delete_outline),
-              tooltip: l10n.removeAction,
-              onPressed: onClear,
-            )
-          : const Icon(Icons.chevron_right),
-      onTap: onTap,
     );
   }
 }

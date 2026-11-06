@@ -512,6 +512,8 @@
   "setColorOnly": "set (color only)",
   "colorHsv": "Color (HSV)",
   "rampMs": "Ramp (ms)",
+  "invalidActionRamp": "Enter a ramp between 0 and 40950 ms.",
+  "noActionTargets": "No controllable devices with an address.",
   "valuePercent": "Value (%)",
   "daySun": "Sun",
   "dayMon": "Mon",

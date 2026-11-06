@@ -1653,6 +1653,18 @@ abstract class AppLocalizations {
   /// **'Ramp (ms)'**
   String get rampMs;
 
+  /// No description provided for @invalidActionRamp.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a ramp between 0 and 40950 ms.'**
+  String get invalidActionRamp;
+
+  /// No description provided for @noActionTargets.
+  ///
+  /// In en, this message translates to:
+  /// **'No controllable devices with an address.'**
+  String get noActionTargets;
+
   /// No description provided for @valuePercent.
   ///
   /// In en, this message translates to:

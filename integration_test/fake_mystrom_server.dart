@@ -37,6 +37,7 @@ class FakeDeviceState {
   String timerMode = 'none'; // last timer mode set
   int timerSeconds = 0; // last timer duration set
   String? lcsButtonAction; // LCS button action URL
+  String? switchButtonActionGeneric;
   String? switchButtonActionOn; // WS2/WSE/WSX ON slot
   String? switchButtonActionOff; // WS2/WSE/WSX OFF slot
   dynamic buttonActions; // Button (legacy) / Button-se action map
@@ -103,6 +104,7 @@ class FakeMystromServer {
   /// with HomeKit, where /identify is a HomeKit API endpoint that rejects
   /// non-HomeKit callers).
   bool rejectIdentify = false;
+  bool ignoreActionWrite = false;
   final Map<String, int> responseStatuses = {};
   Duration responseDelay = Duration.zero;
   Future<void> Function()? onAuthRejected;
@@ -210,7 +212,7 @@ class FakeMystromServer {
       // the URL for that condition via a raw text body.
       if (path.startsWith('/api/v1/action/pir/') && req.method == 'POST') {
         final slot = path.substring('/api/v1/action/pir/'.length);
-        st.pirActions[slot] = body ?? '';
+        if (!ignoreActionWrite) st.pirActions[slot] = body ?? '';
         await _empty(req);
         return;
       }
@@ -220,9 +222,9 @@ class FakeMystromServer {
       if (path.startsWith('/api/v1/action/relay/') && req.method == 'POST') {
         final slot = path.substring('/api/v1/action/relay/'.length);
         final url = (body ?? '').isNotEmpty ? body : '';
-        if (slot == 'on') {
+        if (slot == 'on' && !ignoreActionWrite) {
           st.switchButtonActionOn = url;
-        } else if (slot == 'off') {
+        } else if (slot == 'off' && !ignoreActionWrite) {
           st.switchButtonActionOff = url;
         }
         await _empty(req);
@@ -380,11 +382,12 @@ class FakeMystromServer {
           // GET returns {url, on, off}; POST to /on or /off sets slots.
           if (req.method == 'GET') {
             await _json(req, {
-              'url': '',
+              'url': st.switchButtonActionGeneric ?? '',
               'on': st.switchButtonActionOn ?? '',
               'off': st.switchButtonActionOff ?? '',
             });
           } else {
+            if (!ignoreActionWrite) st.switchButtonActionGeneric = body ?? '';
             await _empty(req);
           }
           return;

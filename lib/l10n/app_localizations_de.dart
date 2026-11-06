@@ -915,6 +915,14 @@ class AppLocalizationsDe extends AppLocalizations {
   String get rampMs => 'Übergangszeit (ms)';
 
   @override
+  String get invalidActionRamp =>
+      'Gib eine Übergangszeit zwischen 0 und 40950 ms ein.';
+
+  @override
+  String get noActionTargets =>
+      'Keine steuerbaren Geräte mit Adresse verfügbar.';
+
+  @override
   String get valuePercent => 'Wert (%)';
 
   @override
