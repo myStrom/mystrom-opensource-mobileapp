@@ -555,6 +555,14 @@ class AppLocalizationsDe extends AppLocalizations {
   String get provisioningFailed => 'Einrichtung fehlgeschlagen';
 
   @override
+  String get provisioningUnconfirmed =>
+      'WLAN-Einrichtung konnte nicht bestätigt werden';
+
+  @override
+  String get provisioningUnconfirmedHint =>
+      'Verbinden Sie Ihr Smartphone wieder mit dem Ziel-WLAN und prüfen Sie den Tab mit den gefundenen Geräten. Wird das Gerät nicht angezeigt, verbinden Sie sich erneut mit seinem Einrichtungs-WLAN und versuchen Sie es noch einmal.';
+
+  @override
   String get startOver => 'Von vorne beginnen';
 
   @override
@@ -567,7 +575,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get wpsSwitchStep2 =>
-      'Drücken Sie innerhalb von 2 Min. die WPS-Taste an Ihrem Router.';
+      'Drücken Sie innerhalb von 2 Min. die WPS-Taste an Ihrem Router oder Access Point.';
 
   @override
   String get wpsSwitchStep3 =>
@@ -592,13 +600,6 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get wpsBulbMode =>
       'Der WPS-Modus läuft 3 Min. (weißes Blinken). Drücken Sie in diesem Zeitfenster WPS an Ihrem Router.';
-
-  @override
-  String get triggerWpsOnDevice => 'WPS am Gerät auslösen';
-
-  @override
-  String get wpsTriggerSnackbar =>
-      'Stellen Sie sicher, dass sich das Gerät im WPS-Modus befindet, und drücken Sie dann WPS an Ihrem Router.';
 
   @override
   String get nameHintExample => 'z. B. Stehlampe Wohnzimmer';

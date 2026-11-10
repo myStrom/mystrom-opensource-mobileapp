@@ -19,13 +19,34 @@ import 'package:hive/hive.dart';
 import 'package:integration_test/integration_test.dart';
 
 import 'package:mystrom_local/app.dart';
+import 'package:mystrom_local/core/config/app_config.dart';
 import 'package:mystrom_local/core/network/udp_discovery.dart';
+import 'package:mystrom_local/core/utils/device_type.dart';
 import 'package:mystrom_local/data/datasources/device_local_ds.dart';
 import 'package:mystrom_local/data/datasources/scene_local_ds.dart';
 import 'package:mystrom_local/data/models/scene.dart';
 import 'package:mystrom_local/data/models/stored_device.dart';
 
 import 'fake_mystrom_server.dart';
+
+class _TestApRoute extends HttpOverrides {
+  _TestApRoute(this.port);
+
+  final int port;
+
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    final client = super.createHttpClient(context);
+    client.findProxy = (_) => 'DIRECT';
+    client.connectionFactory = (uri, host, proxyPort) {
+      if (uri.host == AppConfig.softApDefaultIp && uri.port == 80) {
+        return Socket.startConnect(InternetAddress.loopbackIPv4, port);
+      }
+      return Socket.startConnect(host ?? uri.host, proxyPort ?? uri.port);
+    };
+    return client;
+  }
+}
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -51,6 +72,7 @@ void main() {
 
     apServer = FakeMystromServer();
     await apServer.start();
+    HttpOverrides.global = _TestApRoute(apServer.port);
     apState = apServer.register(
       FakeDeviceState(
         mac: '11:22:33:44:55:66',
@@ -64,6 +86,7 @@ void main() {
   });
 
   tearDownAll(() async {
+    HttpOverrides.global = null;
     await apServer.stop();
     await Hive.close();
     if (tmpHiveDir.existsSync()) {
@@ -101,6 +124,132 @@ void main() {
     }
     expect(scan, findsOneWidget);
     await tester.pumpAndSettle();
+  }
+
+  Future<void> tapSendCredentials(WidgetTester tester) async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    final send = find.byKey(const Key('softap_send_credentials'));
+    final form = find.byWidgetPredicate(
+      (widget) =>
+          widget is Scrollable && widget.axisDirection == AxisDirection.down,
+    );
+    await tester.scrollUntilVisible(send, 250, scrollable: form);
+    await tester.tap(send);
+    await tester.pumpAndSettle(const Duration(milliseconds: 500));
+  }
+
+  Future<void> submitWithoutScan(WidgetTester tester) async {
+    await pumpApp(tester);
+    await openSoftApTab(tester);
+    await connectManually(tester);
+    final skip = find.byKey(const Key('softap_skip_scan'));
+    await tester.ensureVisible(skip);
+    await tester.tap(skip);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('softap_ssid_field')),
+      'Test Wi-Fi',
+    );
+    await tapSendCredentials(tester);
+  }
+
+  testWidgets('SoftAP lost response shows unconfirmed instead of success', (
+    tester,
+  ) async {
+    apState.dropConnectResponse = true;
+    apState.connectRequested = false;
+    final before = apServer.requests.length;
+    addTearDown(() => apState.dropConnectResponse = false);
+    await submitWithoutScan(tester);
+    expect(apState.connectRequested, true);
+    expect(apState.connectBody?['ssid'], 'Test Wi-Fi');
+    expect(
+      apServer.requests
+          .skip(before)
+          .where(
+            (request) =>
+                request.method == 'POST' && request.path == '/api/v1/connect',
+          ),
+      hasLength(1),
+    );
+    expect(find.text('Wi-Fi setup could not be confirmed'), findsOneWidget);
+    expect(find.text('Credentials sent successfully.'), findsNothing);
+    expect(find.byKey(const Key('softap_add_to_list')), findsNothing);
+  });
+
+  testWidgets(
+    'WPS shows device and router instructions without an API button',
+    (tester) async {
+      final before = apServer.requests.length;
+      await pumpApp(tester);
+      await tester.tap(find.byKey(const Key('appbar_add_device')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('tab_wps')));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('Press and hold the "+" button'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('router or access point'), findsOneWidget);
+      expect(
+        find.byKey(const Key('wps_trigger'), skipOffstage: false),
+        findsNothing,
+      );
+      expect(
+        apServer.requests.skip(before).where((r) => r.path == '/api/v1/wps'),
+        isEmpty,
+      );
+    },
+  );
+
+  for (final (raw, version, fallback, expected)
+      in <(Object, String, bool, DeviceType)>[
+        ('WLL', '3.82.25', false, DeviceType.wll),
+        ('SX1', '4.0.12', false, DeviceType.wsx),
+        (122, '4.0.12', true, DeviceType.wsx),
+        (113, '5.0.5', true, DeviceType.wll),
+      ]) {
+    testWidgets('SoftAP $version adds $raw with the discovery MAC and model', (
+      tester,
+    ) async {
+      const mac = 'AA:BB:CC:DD:EE:FF';
+      final fixture = apServer.register(
+        FakeDeviceState(
+          mac: 'aabbccddeeff',
+          type: raw,
+          model: expected.model,
+          version: version,
+        ),
+      );
+      if (fallback) apServer.responseStatuses['/info'] = 404;
+      addTearDown(() async {
+        apServer.responseStatuses.remove('/info');
+        apServer.register(apState);
+        await deviceDs.delete(mac);
+      });
+      final before = apServer.requests.length;
+      await submitWithoutScan(tester);
+      expect(fixture.connectRequested, true);
+      final requests = apServer.requests.skip(before);
+      expect(
+        requests.where(
+          (r) => r.method == 'POST' && r.path == '/api/v1/connect',
+        ),
+        hasLength(1),
+      );
+      if (fallback) {
+        expect(
+          requests.where((r) => r.method == 'GET' && r.path == '/api/v1/info'),
+          isNotEmpty,
+        );
+      }
+      final add = find.byKey(const Key('softap_add_to_list'));
+      await tester.ensureVisible(add);
+      await tester.tap(add);
+      await tester.pumpAndSettle();
+      expect(deviceDs.getByMac(mac)?.type, expected);
+    });
   }
 
   testWidgets('SoftAP tab shows the AP-selection step', (tester) async {
@@ -184,8 +333,7 @@ void main() {
     apState.connectBody = null;
     final before = apServer.requests.length;
     expect(apState.connectRequested, isFalse);
-    await tester.tap(find.byKey(const Key('softap_send_credentials')));
-    await tester.pumpAndSettle(const Duration(seconds: 2));
+    await tapSendCredentials(tester);
 
     expect(apState.connectRequested, isTrue);
     expect(apState.connectBody?['ssid'], 'HomeWiFi');
@@ -232,8 +380,7 @@ void main() {
       '${apServer.host}:${apServer.port}',
     );
 
-    await tester.tap(find.byKey(const Key('softap_send_credentials')));
-    await tester.pumpAndSettle(const Duration(seconds: 2));
+    await tapSendCredentials(tester);
 
     // The legacy fallback should have retried without roaming and landed
     // a second POST that succeeded.

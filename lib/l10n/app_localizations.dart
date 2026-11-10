@@ -1029,6 +1029,18 @@ abstract class AppLocalizations {
   /// **'Provisioning failed'**
   String get provisioningFailed;
 
+  /// No description provided for @provisioningUnconfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Wi-Fi setup could not be confirmed'**
+  String get provisioningUnconfirmed;
+
+  /// No description provided for @provisioningUnconfirmedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Reconnect your phone to the target Wi-Fi and check the Discovered tab. If the device does not appear, reconnect to its setup network and try again.'**
+  String get provisioningUnconfirmedHint;
+
   /// No description provided for @startOver.
   ///
   /// In en, this message translates to:
@@ -1050,7 +1062,7 @@ abstract class AppLocalizations {
   /// No description provided for @wpsSwitchStep2.
   ///
   /// In en, this message translates to:
-  /// **'Within 2 min, press the WPS button on your router.'**
+  /// **'Within 2 min, press the WPS button on your router or access point.'**
   String get wpsSwitchStep2;
 
   /// No description provided for @wpsSwitchStep3.
@@ -1088,18 +1100,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'WPS mode runs for 3 min (white blink). Press WPS on your router during this window.'**
   String get wpsBulbMode;
-
-  /// No description provided for @triggerWpsOnDevice.
-  ///
-  /// In en, this message translates to:
-  /// **'Trigger WPS on device'**
-  String get triggerWpsOnDevice;
-
-  /// No description provided for @wpsTriggerSnackbar.
-  ///
-  /// In en, this message translates to:
-  /// **'Make sure the device is in WPS mode, then press WPS on your router.'**
-  String get wpsTriggerSnackbar;
 
   /// No description provided for @nameHintExample.
   ///

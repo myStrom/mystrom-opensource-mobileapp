@@ -554,6 +554,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get provisioningFailed => 'Provisioning failed';
 
   @override
+  String get provisioningUnconfirmed => 'Wi-Fi setup could not be confirmed';
+
+  @override
+  String get provisioningUnconfirmedHint =>
+      'Reconnect your phone to the target Wi-Fi and check the Discovered tab. If the device does not appear, reconnect to its setup network and try again.';
+
+  @override
   String get startOver => 'Start over';
 
   @override
@@ -566,7 +573,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wpsSwitchStep2 =>
-      'Within 2 min, press the WPS button on your router.';
+      'Within 2 min, press the WPS button on your router or access point.';
 
   @override
   String get wpsSwitchStep3 =>
@@ -591,13 +598,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get wpsBulbMode =>
       'WPS mode runs for 3 min (white blink). Press WPS on your router during this window.';
-
-  @override
-  String get triggerWpsOnDevice => 'Trigger WPS on device';
-
-  @override
-  String get wpsTriggerSnackbar =>
-      'Make sure the device is in WPS mode, then press WPS on your router.';
 
   @override
   String get nameHintExample => 'e.g. Living room floor lamp';

@@ -174,7 +174,13 @@ class DeviceRemoteDataSource {
     // Newer firmware: include roaming.
     final newBody = <String, dynamic>{...base, 'roaming': roaming};
     try {
-      await _client.post(ip, ApiEndpoints.connect, body: newBody);
+      // The AP can close the connection after applying the credentials.
+      await _client.post(
+        ip,
+        ApiEndpoints.connect,
+        body: newBody,
+        retryOnConnectionReset: false,
+      );
       return;
     } on DioException catch (e) {
       // 400 Bad Request → legacy firmware without roaming support.
@@ -187,7 +193,12 @@ class DeviceRemoteDataSource {
     }
 
     // Legacy firmware: omit roaming entirely.
-    await _client.post(ip, ApiEndpoints.connect, body: base);
+    await _client.post(
+      ip,
+      ApiEndpoints.connect,
+      body: base,
+      retryOnConnectionReset: false,
+    );
   }
 
   Future<void> triggerWps(String ip) async {

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/network/wifi_platform.dart';
+import '../../core/utils/device_type.dart';
 import '../../data/models/device_info.dart';
 import '../../data/models/wifi_network.dart';
 import '../../domain/usecases/provision_wifi.dart';
@@ -23,6 +24,9 @@ enum ProvisioningStage {
 
   /// Device accepted credentials and is rebooting onto the home WiFi.
   done,
+
+  /// The response was lost, so the device may have applied the settings.
+  unconfirmed,
 
   /// Terminal error state — [error] holds the message.
   error,
@@ -68,6 +72,11 @@ class ProvisioningProvider extends ChangeNotifier {
   /// Used to confirm the exact [DeviceType] and MAC.
   DeviceInfoModel? _deviceInfo;
   DeviceInfoModel? get deviceInfo => _deviceInfo;
+
+  DeviceType get deviceType {
+    final type = DeviceType.fromInfo(_deviceInfo?.type ?? '');
+    return type == DeviceType.unknown ? _selectedAp?.type ?? type : type;
+  }
 
   /// Home WiFi networks visible to the device (from `GET /api/v1/scan`).
   List<WifiNetworkModel> _networks = const [];
@@ -181,7 +190,7 @@ class ProvisioningProvider extends ChangeNotifier {
   /// [ProvisioningStage.done] and asks the OS to disconnect from the
   /// device AP so the host rejoins its home WiFi automatically.
   ///
-  /// Returns `true` on success.
+  /// Returns `true` only after the device acknowledges the request.
   Future<bool> sendCredentials(
     String ssid,
     String? password, {
@@ -210,24 +219,13 @@ class ProvisioningProvider extends ChangeNotifier {
       _stage = ProvisioningStage.done;
       return true;
     } on DioException catch (e) {
-      // The device starts shutting down its AP *immediately* after
-      // accepting /api/v1/connect, so the HTTP response often never
-      // arrives (connection reset / receive timeout). Treat those as
-      // success — the credentials were almost certainly received.
-      final dropped =
-          e.type == DioExceptionType.connectionError ||
-          e.type == DioExceptionType.receiveTimeout ||
-          e.type == DioExceptionType.connectionTimeout;
-      if (dropped) {
-        debugPrint(
-          '[provision] connect response dropped (${e.type}) — '
-          'treating as success',
-        );
-        _stage = ProvisioningStage.done;
-        return true;
-      }
       _error = e;
-      _stage = ProvisioningStage.error;
+      // Some firmware shuts down its AP before the response gets back.
+      _stage = switch (e.type) {
+        DioExceptionType.connectionError ||
+        DioExceptionType.receiveTimeout => ProvisioningStage.unconfirmed,
+        _ => ProvisioningStage.error,
+      };
       return false;
     } catch (e) {
       _error = e;
@@ -236,7 +234,7 @@ class ProvisioningProvider extends ChangeNotifier {
     } finally {
       // The device AP is going down — tell the OS to drop it so the
       // host rejoins the home WiFi. Best-effort; ignored on desktop.
-      if (_selectedAp != null) {
+      if (_stage == ProvisioningStage.done && _selectedAp != null) {
         try {
           await _wifi.disconnectFromAp(_selectedAp!.ssid);
         } catch (e) {

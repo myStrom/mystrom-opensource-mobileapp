@@ -151,7 +151,10 @@ class _SoftApTabState extends State<_SoftApTab> {
           // Short-timeout (5s) client for the /api/v1/info probe so the
           // wizard doesn't block for 30s when the device doesn't answer.
           infoRemote: DeviceRemoteDataSource(
-            DeviceHttpClient(timeout: const Duration(seconds: 5)),
+            DeviceHttpClient(
+              timeout: const Duration(seconds: 5),
+              promptForToken: false,
+            ),
           ),
         ),
       ),
@@ -230,6 +233,7 @@ class _SoftApTabState extends State<_SoftApTab> {
                   _roaming = false;
                 },
               );
+            case ProvisioningStage.unconfirmed:
             case ProvisioningStage.error:
               return _ErrorStep(provider: p, onRetry: () => _provider.reset());
           }
@@ -463,7 +467,7 @@ class _ScanNetworksStep extends StatelessWidget {
           Card(
             child: ListTile(
               leading: Icon(
-                _iconForType(provider.selectedAp!.type),
+                _iconForType(provider.deviceType),
                 color: Colors.blue,
               ),
               title: Text(
@@ -474,10 +478,10 @@ class _ScanNetworksStep extends StatelessWidget {
               subtitle: Text(
                 provider.deviceInfo != null
                     ? l10n.deviceInfoMacLine(
-                        provider.deviceInfo!.type.toUpperCase(),
+                        provider.deviceType.model,
                         provider.deviceInfo!.mac,
                       )
-                    : provider.selectedAp!.type.localizedName(l10n),
+                    : provider.deviceType.localizedName(l10n),
               ),
             ),
           ),
@@ -731,11 +735,13 @@ class _DoneStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final info = provider.deviceInfo;
-    final mac = info?.mac ?? '';
-    final type = info != null
-        ? _typeFromInfo(info.type)
-        : provider.selectedAp?.type ?? DeviceType.unknown;
+    final rawMac = provider.deviceInfo?.mac.replaceAll(':', '') ?? '';
+    final mac = RegExp(r'^[0-9a-fA-F]{12}$').hasMatch(rawMac)
+        ? RegExp(
+            r'..',
+          ).allMatches(rawMac.toUpperCase()).map((m) => m[0]).join(':')
+        : '';
+    final type = provider.deviceType;
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -761,11 +767,11 @@ class _DoneStep extends StatelessWidget {
               key: const Key('softap_add_to_list'),
               icon: const Icon(Icons.add),
               label: Text(l10n.addToDeviceListNow),
-              onPressed: () {
+              onPressed: () async {
                 // Add directly with the info we have; the device will be
                 // updated with its real IP once UDP discovery picks it up.
                 final dp = context.read<DeviceProvider>();
-                dp.addDevice(
+                await dp.addDevice(
                   DeviceEntity(
                     mac: mac,
                     name: nameController.text.isEmpty
@@ -778,11 +784,10 @@ class _DoneStep extends StatelessWidget {
                       ? null
                       : nameController.text,
                 );
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(l10n.deviceAddedWillComeOnline)),
-                  );
-                }
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l10n.deviceAddedWillComeOnline)),
+                );
                 onRestart();
               },
             ),
@@ -809,22 +814,29 @@ class _ErrorStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final unconfirmed = provider.stage == ProvisioningStage.unconfirmed;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.error, color: Colors.red, size: 48),
+          Icon(
+            unconfirmed ? Icons.warning_amber : Icons.error,
+            color: unconfirmed ? Colors.orange : Colors.red,
+            size: 48,
+          ),
           const SizedBox(height: 8),
           Text(
-            l10n.provisioningFailed,
+            unconfirmed
+                ? l10n.provisioningUnconfirmed
+                : l10n.provisioningFailed,
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
-            provider.error != null
-                ? _provisionErrorMessage(provider, l10n)
-                : l10n.unknownError,
+            unconfirmed
+                ? l10n.provisioningUnconfirmedHint
+                : _provisionErrorMessage(provider, l10n),
             style: const TextStyle(color: Colors.red),
           ),
           const SizedBox(height: 24),
@@ -854,24 +866,6 @@ IconData _barsForSignal(int dbm) {
   if (dbm >= -60) return Icons.network_wifi_3_bar;
   if (dbm >= -70) return Icons.network_wifi_2_bar;
   return Icons.network_wifi_1_bar;
-}
-
-DeviceType _typeFromInfo(String infoType) {
-  final t = infoType.toLowerCase();
-  return switch (t) {
-    'ws2' => DeviceType.ws2,
-    'wse' => DeviceType.wse,
-    'wsx' => DeviceType.wsx,
-    'strip' || 'wrs' => DeviceType.wrs,
-    'cube' || 'wll' => DeviceType.wll,
-    'pir' || 'wms' => DeviceType.wms,
-    'bp2' => DeviceType.bp2,
-    'bm1' => DeviceType.bm1,
-    'bulb' || 'wrb' => DeviceType.bulb,
-    'lcs' => DeviceType.lcs,
-    'button' || 'wbs' || 'wbp' => DeviceType.button,
-    _ => DeviceType.unknown,
-  };
 }
 
 /// Formats [ProvisioningProvider.error] for display (localizes scan failures).
@@ -917,17 +911,6 @@ class _WpsTab extends StatelessWidget {
         _InstructionBlock(
           title: l10n.apModeBulbTitle,
           steps: [l10n.wpsBulbReset, l10n.wpsBulbMode, l10n.wpsResultHint],
-        ),
-        const SizedBox(height: 24),
-        FilledButton.icon(
-          key: const Key('wps_trigger'),
-          icon: const Icon(Icons.wifi_tethering),
-          label: Text(l10n.triggerWpsOnDevice),
-          onPressed: () {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(l10n.wpsTriggerSnackbar)));
-          },
         ),
       ],
     );

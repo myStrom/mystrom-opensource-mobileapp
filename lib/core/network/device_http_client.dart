@@ -176,6 +176,7 @@ class DeviceHttpClient {
     Map<String, dynamic>? query,
     ResponseType? responseType,
     String? contentType,
+    bool retryOnConnectionReset = true,
   }) {
     final url = '${_base(ip)}$path';
     debugPrint('[HTTP] POST');
@@ -190,7 +191,7 @@ class DeviceHttpClient {
           contentType: contentType,
         ),
       );
-    });
+    }, retryOnConnectionReset: retryOnConnectionReset);
   }
 
   /// Send a URL-encoded form body (used by strip/dimmer/bulb).
@@ -263,19 +264,22 @@ class DeviceHttpClient {
   }
 
   Future<Response<T>> _executeWithRetry<T>(
-    Future<Response<T>> Function() action,
-  ) async {
+    Future<Response<T>> Function() action, {
+    bool retryOnConnectionReset = true,
+  }) async {
     try {
       final res = await action();
       debugPrint('[HTTP] ← ${res.statusCode}');
       return res;
     } on DioException catch (e) {
       if (_shouldResetForClosedConnection(e)) {
-        debugPrint('[HTTP] Connection reset, retrying...');
         _resetHttpClient();
-        final res = await action();
-        debugPrint('[HTTP] ← ${res.statusCode} (after retry)');
-        return res;
+        if (retryOnConnectionReset) {
+          debugPrint('[HTTP] Connection reset, retrying...');
+          final res = await action();
+          debugPrint('[HTTP] ← ${res.statusCode} (after retry)');
+          return res;
+        }
       }
       debugPrint('[HTTP] ← ERROR ${e.type} ${e.message}');
       rethrow;

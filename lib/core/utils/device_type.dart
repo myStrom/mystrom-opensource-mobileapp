@@ -175,6 +175,25 @@ enum DeviceType {
     );
   }
 
+  /// Resolve the model name or numeric type from the firmware info response.
+  static DeviceType fromInfo(String value) {
+    final type = value.trim().toLowerCase();
+    final code = int.tryParse(type);
+    if (code != null) return fromCode(code);
+    return switch (type) {
+      'sx1' => wsx,
+      'strip' => wrs,
+      'cube' => wll,
+      'pir' => wms,
+      'wrb' => bulb,
+      'wbs' || 'wbp' => button,
+      _ => values.firstWhere(
+        (device) => device.model.toLowerCase() == type,
+        orElse: () => unknown,
+      ),
+    };
+  }
+
   /// Whether this device type broadcasts UDP continuously.
   /// Battery-powered buttons may sleep and not broadcast reliably.
   bool get broadcastsUdp => !isBattery;

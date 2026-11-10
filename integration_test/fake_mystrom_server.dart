@@ -19,7 +19,7 @@ class FakeDeviceState {
   });
 
   final String mac;
-  final String type; // info "type" string, e.g. "wse", "strip"
+  final Object type; // Model string or numeric type in the info response.
   final String model; // e.g. "WS2", "WRS"
   final String version; // firmware version
 
@@ -84,6 +84,9 @@ class FakeDeviceState {
   /// per request) to simulate legacy firmware that rejects the `roaming`
   /// field on the first attempt. Tests the fallback retry path.
   int rejectConnectCount = 0;
+
+  /// Close the AP connection after receiving credentials, before sending ACK.
+  bool dropConnectResponse = false;
 
   /// Set to true when `POST /api/v1/wps` was received.
   bool wpsRequested = false;
@@ -562,6 +565,13 @@ class FakeMystromServer {
               st.rejectConnectCount--;
               req.response.statusCode = HttpStatus.badRequest;
               await req.response.close();
+              return;
+            }
+            if (st.dropConnectResponse) {
+              final socket = await req.response.detachSocket(
+                writeHeaders: false,
+              );
+              socket.destroy();
               return;
             }
           }
